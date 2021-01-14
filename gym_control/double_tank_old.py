@@ -7,8 +7,7 @@ import numpy as np
 import math 
 import random
 
-from numpy.lib.function_base import select 
-
+np.random.seed(5)
 
 class ENV(object):
     # x' = Ax + Bu
@@ -25,7 +24,7 @@ class ENV(object):
         self.x = np.zeros((2,1))
         self.xdot = np.zeros((2,1))
         self.y = np.zeros((1,1))
-        self.y_set = np.zeros((1,1))
+        self.y_set = 0.4
         self.set_config(config)
 
         self.epsilon = 0.01
@@ -74,15 +73,13 @@ class ENV(object):
         self.x[0] = h1
         self.x[1] = h2
         self.y = self.x[1]
-        if self.y<0:
-            debug = True
         self.calc_reward()
         self.if_done()
         self.error_calc()
         next_state = np.random.rand(1,4)
-        next_state[0,0] = np.asscalar(self.y_set)
+        next_state[0,0] = self.y_set
         next_state[0,1:3] = self.x.reshape(1,2)
-        next_state[0,3] = self.e_int
+        next_state[0,3] = self.e_int[0]
         return next_state, self.reward, self.done
 
     def error_calc(self):
@@ -91,13 +88,15 @@ class ENV(object):
     def calc_reward(self):
         diff = self.y_set - self.y
         diff = math.fabs( np.asscalar(diff[0]) )
-        tuner = np.asscalar(self.y_set)
+        tuner = self.y_set
         if( diff < 0.01*tuner ):
             self.reward = 5
         if(diff < 0.05*tuner) and (diff>0.01*tuner):
             self.reward = 0.5
         if(diff < 0.1*tuner ) and (diff>0.05*tuner):
             self.reward = 0.1
+        if(self.y < 0):
+            self.reward = -1
         else:
             self.reward = -diff
 
@@ -106,9 +105,9 @@ class ENV(object):
         self.y = np.array([0])
         self.x = np.array([ [0.5],[0] ]) # np.array([ [h1],[h2] ]) 
         self.e_int = 0
-        self.y_set = np.array([ [random.random()*0.4 + 0.1] ])
+        self.y_set = random.random()*0.4 + 0.1
         out = np.random.rand(1,4)
-        out[0,0] = np.asscalar(self.y_set)
+        out[0,0] = self.y_set
         out[0,1:3] = self.x.reshape(1,2)
         out[0,3] = self.e_int
         return out

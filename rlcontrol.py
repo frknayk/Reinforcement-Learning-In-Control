@@ -7,6 +7,10 @@ from tensorboardX import SummaryWriter
 from agents.base import Agent
 from gym_control.base import ENV
 
+import matplotlib.pyplot as plt
+
+np.random.seed(5)
+
 
 PROJECT_NAME = 'Reinforcement-Learning-In-Control'
 
@@ -54,7 +58,7 @@ class Organizer(object):
         project_abs_path, algorithm_relative_name = create_log_directories(algorithm_name)
         project_abs_path = project_abs_path + "/Logs/"
         self.log_weight_dir = project_abs_path + "Agents/" + algorithm_relative_name
-        self.log_tensorboard_dir = project_abs_path+"/runs/"+algorithm_relative_name
+        self.log_tensorboard_dir = project_abs_path+"runs/"+algorithm_relative_name
         # TODO: Add hyperparameters to tensorboard
         self.writer = SummaryWriter(comment="-"+algorithm_name,log_dir=self.log_tensorboard_dir+'/')
 
@@ -72,13 +76,9 @@ class Organizer(object):
 
     def train(self, training_config=None):
         self.set_log_directories()
-        
-
-        self.config = self.get_default_training_config() if training_config is None else training_config 
-        
+        self.config = self.get_default_training_config() if training_config is None else training_config         
         best_reward = -200000
         batch_size = self.agent.get_batch_size()
-
         for eps in range(self.config['max_episode']):
             state = self.env.reset()
             self.agent.reset()
@@ -89,6 +89,13 @@ class Organizer(object):
             total_control_signal = 0
             total_output_signal = 0
 
+            # DEBUG
+            fig, axs = plt.subplots(3)
+            output_list = []
+            reward_list=[]
+            reference_list=[]
+            control_sig_list=[]
+
             for step in range(self.config['max_step']):
                 action = self.agent.apply(state, step)
 
@@ -98,6 +105,19 @@ class Organizer(object):
 
                 y1 = np.asscalar(self.env.y)
                 u1 = np.asscalar(action[0])
+                
+                # msg1 = "Y(t)/R(t): {0}/{1}".format(y1,self.env.y_set)
+                # print(msg1)
+                output_list.append(y1)
+                reference_list.append(self.env.y_set)
+                reward_list.append(reward)
+                control_sig_list.append(action)
+                # # PLOT
+                # axs[0].clear()
+                # axs[1].clear()
+                # axs[2].clear()
+
+
                 
                 total_control_signal += u1
                 total_output_signal += y1
@@ -120,27 +140,101 @@ class Organizer(object):
                     self.writer.add_scalar("Train/mean_output_signal", np.mean(total_output_signal), eps)
 
                 state = next_state
-            
+
+            # axs[0].set_title("Output vs Reference")
+            # axs[0].plot(output_list)
+            # axs[0].plot(reference_list)
+            # axs[1].set_title("Reward List")
+            # axs[1].plot(reward_list)
+            # axs[2].set_title("Control Signal List")
+            # axs[2].plot(control_sig_list)
+            # plt.show()
+
             str1 = "Trial : [ {0} ] is completed with reference : [ {1} ]\nOUT-1 : [ {2} ]\nEpisode Reward : [ {3} ]".format(
                 eps+1,
-                np.asscalar(self.env.y_set),
+                self.env.y_set,
                 np.asscalar(self.env.y),
                 episode_reward)
             print(str1)
             print("\n*******************************\n")
             
-            
             # Saving Model
-            self.agent.save(self.log_weight_dir+'__'+str(eps)+'.pth')
+            self.agent.save(self.log_weight_dir+'/agent_'+str(eps)+'.pth')
 
 
             # Save best model seperately
             if(episode_reward > best_reward) : 
-                self.agent.save(self.log_weight_dir+'agent_best.pth')
+                self.agent.save(self.log_weight_dir+'/agent_best.pth')
                 best_reward = episode_reward
 
-    def inference(self, inference_config=None):
-        raise(NotImplementedError)
+    def inference(self, agent_path, inference_config=None):
+        self.config = self.get_default_training_config() if inference_config is None else inference_config 
+        self.config['max_step'] = 3500
+
+        for eps in range(self.config['max_episode']):
+            # Saving Model
+            self.agent.load(agent_path)
+
+            state = self.env.reset()
+            self.agent.reset()
+
+            episode_reward = 0
+            total_control_signal = 0
+            total_output_signal = 0
+
+            # DEBUG
+            fig, axs = plt.subplots(3)
+            output_list = []
+            reward_list=[]
+            reference_list=[]
+            control_sig_list=[]
+
+            for step in range(self.config['max_step']):
+                action = self.agent.apply(state, step)
+
+                total_control_signal = total_control_signal + action
+            
+                next_state, reward, done = self.env.step(action)
+
+                y1 = np.asscalar(self.env.y)
+                u1 = np.asscalar(action[0])
+                
+                # msg1 = "Y(t)/R(t): {0}/{1}".format(y1,self.env.y_set)
+                # print(msg1)
+                output_list.append(y1)
+                reference_list.append(self.env.y_set)
+                reward_list.append(reward)
+                control_sig_list.append(action)
+
+
+                total_control_signal += u1
+                total_output_signal += y1
+                
+                episode_reward = episode_reward + reward
+                
+                state = next_state
+                if done:
+                    break
+
+  
+
+            axs[0].set_title("Output vs Reference")
+            axs[0].plot(output_list)
+            axs[0].plot(reference_list)
+            axs[1].set_title("Reward List")
+            axs[1].plot(reward_list)
+            axs[2].set_title("Control Signal List")
+            axs[2].plot(control_sig_list)
+            plt.show()
+
+            str1 = "Trial : [ {0} ] is completed with reference : [ {1} ]\nOUT-1 : [ {2} ]\nEpisode Reward : [ {3} ]".format(
+                eps+1,
+                self.env.y_set,
+                np.asscalar(self.env.y),
+                episode_reward)
+            print(str1)
+            print("\n*******************************\n")
+            
 
 if __name__ == "__main__":
     from gym_control.double_tank_old import ENV
@@ -148,4 +242,7 @@ if __name__ == "__main__":
     train_organizer = Organizer(
         env=ENV,
         agent_class=DDPG)
-    train_organizer.train()
+    # train_organizer.train()
+    your_home_path = "/home/anton/coding/repos/"
+    best_weight=your_home_path+"Reinforcement-Learning-In-Control/Logs/Agents/DDPG_2021_1_14_22_52_59/agent_best.pth"
+    train_organizer.inference(best_weight)
