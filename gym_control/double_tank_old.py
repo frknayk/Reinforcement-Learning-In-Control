@@ -7,7 +7,7 @@ import numpy as np
 import math 
 import random
 
-np.random.seed(5)
+np.random.seed(59)
 
 class ENV(object):
     # x' = Ax + Bu

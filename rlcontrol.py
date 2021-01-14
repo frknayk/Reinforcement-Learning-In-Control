@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import NewType
 import numpy as np
 import logging
 from datetime import datetime
@@ -9,7 +10,7 @@ from gym_control.base import ENV
 
 import matplotlib.pyplot as plt
 
-np.random.seed(5)
+np.random.seed(59)
 
 
 PROJECT_NAME = 'Reinforcement-Learning-In-Control'
@@ -65,7 +66,7 @@ class Organizer(object):
     @staticmethod
     def get_default_training_config():
         training_config = {
-            'max_episode' : 5000,
+            'max_episode' : 10,
             'max_step' : 500,
             # Frequency of logging trained weights
             'freq_weight_log' : 50, 
@@ -80,7 +81,7 @@ class Organizer(object):
         best_reward = -200000
         batch_size = self.agent.get_batch_size()
         for eps in range(self.config['max_episode']):
-            state = self.env.reset()
+            
             self.agent.reset()
 
             episode_reward = 0
@@ -96,13 +97,15 @@ class Organizer(object):
             reference_list=[]
             control_sig_list=[]
 
+            state = self.env.reset()
+
             for step in range(self.config['max_step']):
                 action = self.agent.apply(state, step)
 
                 total_control_signal = total_control_signal + action
             
                 next_state, reward, done = self.env.step(action)
-
+                state = next_state
                 y1 = np.asscalar(self.env.y)
                 u1 = np.asscalar(action[0])
                 
@@ -117,8 +120,6 @@ class Organizer(object):
                 # axs[1].clear()
                 # axs[2].clear()
 
-
-                
                 total_control_signal += u1
                 total_output_signal += y1
 
@@ -131,15 +132,13 @@ class Organizer(object):
                     episode_policy_loss += policy_loss
                     episode_value_loss += value_loss
 
-                if done:
-                    state = self.env.reset()                    
+                if done:               
                     self.writer.add_scalar("Train/reward", episode_reward, eps)
                     self.writer.add_scalar("Train/policy_loss", episode_policy_loss, eps)
                     self.writer.add_scalar("Train/value_loss", episode_value_loss, eps)
                     self.writer.add_scalar("Train/mean_control_signal", np.mean(total_control_signal), eps)
                     self.writer.add_scalar("Train/mean_output_signal", np.mean(total_output_signal), eps)
-
-                state = next_state
+                    break
 
             # axs[0].set_title("Output vs Reference")
             # axs[0].plot(output_list)
@@ -169,7 +168,8 @@ class Organizer(object):
 
     def inference(self, agent_path, inference_config=None):
         self.config = self.get_default_training_config() if inference_config is None else inference_config 
-        self.config['max_step'] = 3500
+        self.config['max_step'] = 5500
+        self.config['max_episode'] = 100
 
         for eps in range(self.config['max_episode']):
             # Saving Model
@@ -216,8 +216,6 @@ class Organizer(object):
                 if done:
                     break
 
-  
-
             axs[0].set_title("Output vs Reference")
             axs[0].plot(output_list)
             axs[0].plot(reference_list)
@@ -244,5 +242,5 @@ if __name__ == "__main__":
         agent_class=DDPG)
     # train_organizer.train()
     your_home_path = "/home/anton/coding/repos/"
-    best_weight=your_home_path+"Reinforcement-Learning-In-Control/Logs/Agents/DDPG_2021_1_14_22_52_59/agent_best.pth"
+    best_weight=your_home_path+"Reinforcement-Learning-In-Control/Logs/Agents/DDPG_2021_1_14_23_32_47/agent_best.pth"
     train_organizer.inference(best_weight)

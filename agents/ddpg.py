@@ -14,6 +14,7 @@ from agents.base import Agent
 use_cuda = torch.cuda.is_available()
 device   = torch.device("cuda" if use_cuda else "cpu")
 
+np.random.seed(59)
 
 class DDPG(Agent):
     def __init__(self,
