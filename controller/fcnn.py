@@ -17,6 +17,7 @@ class PolicyNetwork(nn.Module):
 
         super(PolicyNetwork, self).__init__()
         
+        # state_fake = np.random.rand(4,1)
         self.linear1 = nn.Linear(num_inputs, hidden_size)
         self.linear2 = nn.Linear(hidden_size, hidden_size)
         self.linear3 = nn.Linear(hidden_size, num_actions)
@@ -25,6 +26,12 @@ class PolicyNetwork(nn.Module):
         self.linear3.bias.data.uniform_(-init_w, init_w)
         
     def forward(self, state):
+        """
+        Get output of the policy
+
+        Args:
+            state (torch array): State of the dynamical system
+        """
         x = F.relu(self.linear1(state))
         x = F.relu(self.linear2(x))
         # x = self.tanh_mod(self.linear3(x),25)

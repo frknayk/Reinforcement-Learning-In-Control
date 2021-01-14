@@ -24,6 +24,7 @@ class DDPG(Agent):
             params=None):
         super().__init__(state_dim, action_dim)
         self.algorithm_name = "DDPG"
+        self.action_dim = action_dim
         self.value_net = ValueNetwork(state_dim, action_dim, hidden_dim).to(device)
         self.policy_net = PolicyNetwork(state_dim, action_dim, hidden_dim).to(device)
         self.target_value_net = ValueNetwork(state_dim, action_dim, hidden_dim).to(device)
@@ -63,6 +64,7 @@ class DDPG(Agent):
             'soft_tau' : 1e-2,
             'soft_update_frequency' : 1
         }
+        return params
 
     def create_target_nets(self):
         for target_param, param in zip(self.target_value_net.parameters(), self.value_net.parameters()):
@@ -72,7 +74,11 @@ class DDPG(Agent):
             target_param.data.copy_(param.data)
 
     def apply(self, state, step):
+        state = torch.FloatTensor(state).unsqueeze(0).to(device)
         action =  self.policy_net.forward(state)
+        # convert torch to np
+        action = action.cpu().data.numpy()
+        action = action.reshape(self.action_dim)
         action = self.ou_noise.get_action(action, step)
         return action
 
@@ -136,7 +142,7 @@ class DDPG(Agent):
         try:
             torch.save(self.policy_net.state_dict(), agent_weight_abs)
         except Exception as e:
-            raise("Network could not load : {0}".format(e))
+            raise "Network could not load : {0}".format(e)
 
     def reset(self):
         self.ou_noise.reset()
