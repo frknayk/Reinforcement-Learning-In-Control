@@ -3,8 +3,7 @@ from numpy.lib.function_base import select
 
 
 class Agent(object):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, state_dim, action_dim):
         self.batch_size = 64
         self.algorithm_name = ""
 

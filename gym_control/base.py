@@ -12,6 +12,8 @@ class ENV(object):
     # y = Cx + Du
 
     def __init__(self,initial_conditions):
+        self.state_dim = None
+        self.action_dim = None
         self.state = None
         self.next_state = None
         self.set_point = None
