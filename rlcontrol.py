@@ -76,7 +76,7 @@ class Organizer(object):
 
         self.config = self.get_default_training_config() if training_config is None else training_config 
         
-        best_reward = -2000
+        best_reward = -200000
         batch_size = self.agent.get_batch_size()
 
         for eps in range(self.config['max_episode']):
