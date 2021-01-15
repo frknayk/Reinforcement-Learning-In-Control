@@ -1,29 +1,24 @@
 # Reinforcement-Learning-in-Control-Applications
-Investigating applicability of SOTA RL algorithms in linear/nonlinear control systems
 
-***************************************************
-'gym.py' file, mathematical model of linear/nonlinear system is given. You can change it for any system.
 
-'train.py' contains all of DDPG algorithm code for training.
+## About <a name = "about"></a>
 
-During the training all of data is recorded to csv files to plot reward,control signal, output changes
-during the training.
+Apply SOTA RL algorithms to linear/nonlinear control systems
 
-'inference.py' simulates step response
 
-'stepTracking.py' simulates step tracking with given reference
+## Getting Started <a name = "getting_started"></a>
 
-***************************************************
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. ### Prerequisites
 
-To plot csv files I used MATLAB. 
-(You can use free version of MATLAB, octave to plot graphs)
+What things you need to install the software and how to install them.
 
-To see reward change and most reward maximizing episode's step respnse,control signal change,
-use 'readLog.m'.Before this run inference.py file.
+```
+Give examples
+```
 
-In read_StepTrack.m is used to plot step tracking performance. Before this run stepTracking.py file.
+### Installing
+Install the package locally by running : ```pip3 install -e .```
 
-***************************************************
-Version_1 includes training for onyl one reference point.
+## Usage <a name = "usage"></a>
 
-Version_2 includes training for difference reference points.
+Add notes about how to use the system.

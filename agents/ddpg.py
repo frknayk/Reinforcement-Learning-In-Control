@@ -1,13 +1,12 @@
-from os import lseek, stat
 import random
 import numpy as np
-from numpy.lib.function_base import select
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Normal
 
+from controller.fcnn import ValueNetwork,PolicyNetwork
 from agents.base import Agent
 
 
@@ -15,27 +14,22 @@ from agents.base import Agent
 use_cuda = torch.cuda.is_available()
 device   = torch.device("cuda" if use_cuda else "cpu")
 
-
-# value_net  = ValueNetwork(state_dim, action_dim, hidden_dim).to(device)
-# policy_net = PolicyNetwork(state_dim, action_dim, hidden_dim).to(device)
-# target_value_net  = ValueNetwork(state_dim, action_dim, hidden_dim).to(device)
-# target_policy_net = PolicyNetwork(state_dim, action_dim, hidden_dim).to(device)
+np.random.seed(59)
 
 class DDPG(Agent):
     def __init__(self,
-            policy_net, 
-            value_net,
-            target_value_net,
-            target_policy_net,
-            action_dim, state_dim,
+            action_dim, 
+            state_dim,
             batch_size = 64,
+            hidden_dim = 32,
             params=None):
-        super().__init__()
+        super().__init__(state_dim, action_dim)
         self.algorithm_name = "DDPG"
-        self.value_net = value_net
-        self.policy_net = policy_net
-        self.target_value_net = target_value_net
-        self.target_policy_net = target_policy_net
+        self.action_dim = action_dim
+        self.value_net = ValueNetwork(state_dim, action_dim, hidden_dim).to(device)
+        self.policy_net = PolicyNetwork(state_dim, action_dim, hidden_dim).to(device)
+        self.target_value_net = ValueNetwork(state_dim, action_dim, hidden_dim).to(device)
+        self.target_policy_net = PolicyNetwork(state_dim, action_dim, hidden_dim).to(device)
 
         self.batch_size = batch_size
 
@@ -45,13 +39,16 @@ class DDPG(Agent):
         if not params:
             self.params = self.get_default_params()
 
-        self.value_optimizer  = optim.Adam(value_net.parameters(),  lr=self.params['value_lr'])
-        self.policy_optimizer = optim.Adam(policy_net.parameters(), lr=self.params['policy_lr'])
+        self.value_optimizer  = optim.Adam(self.value_net.parameters(),  lr=self.params['value_lr'])
+        self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=self.params['policy_lr'])
         self.value_criterion = nn.MSELoss()
         self.replay_buffer = ReplayBuffer(self.params['replay_buffer_size'])
 
         # Copy original networks to target network weights (NOT SURE)
         self.create_target_nets()
+
+    def get_algorithm_name(self):
+        return self.algorithm_name
 
     def get_batch_size(self):
         return self.batch_size
@@ -68,6 +65,7 @@ class DDPG(Agent):
             'soft_tau' : 1e-2,
             'soft_update_frequency' : 1
         }
+        return params
 
     def create_target_nets(self):
         for target_param, param in zip(self.target_value_net.parameters(), self.value_net.parameters()):
@@ -77,7 +75,11 @@ class DDPG(Agent):
             target_param.data.copy_(param.data)
 
     def apply(self, state, step):
+        state = torch.FloatTensor(state).unsqueeze(0).to(device)
         action =  self.policy_net.forward(state)
+        # convert torch to np
+        action = action.cpu().data.numpy()
+        action = action.reshape(self.action_dim)
         action = self.ou_noise.get_action(action, step)
         return action
 
@@ -141,7 +143,7 @@ class DDPG(Agent):
         try:
             torch.save(self.policy_net.state_dict(), agent_weight_abs)
         except Exception as e:
-            raise("Network could not load : {0}".format(e))
+            raise "Network could not load : {0}".format(e)
 
     def reset(self):
         self.ou_noise.reset()
