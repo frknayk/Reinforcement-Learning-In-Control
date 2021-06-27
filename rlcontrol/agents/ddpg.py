@@ -6,8 +6,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Normal
 
-from controller.fcnn import ValueNetwork,PolicyNetwork
-from agents.base import Agent
+from rlcontrol.controllers.fcnn import ValueNetwork,PolicyNetwork
+from rlcontrol.agents.base import Agent
 
 
 # Using Cuda
@@ -16,22 +16,27 @@ device   = torch.device("cuda" if use_cuda else "cpu")
 
 np.random.seed(59)
 
+config_default = {
+    'batch_size' : 64,
+    'hidden_dim' : 32,
+    'policy_net' : PolicyNetwork,
+    'value_net' : ValueNetwork
+}
 class DDPG(Agent):
     def __init__(self,
             action_dim, 
             state_dim,
-            batch_size = 64,
-            hidden_dim = 32,
+            agent_config:config_default,
             params=None):
         super().__init__(state_dim, action_dim)
         self.algorithm_name = "DDPG"
         self.action_dim = action_dim
-        self.value_net = ValueNetwork(state_dim, action_dim, hidden_dim).to(device)
-        self.policy_net = PolicyNetwork(state_dim, action_dim, hidden_dim).to(device)
-        self.target_value_net = ValueNetwork(state_dim, action_dim, hidden_dim).to(device)
-        self.target_policy_net = PolicyNetwork(state_dim, action_dim, hidden_dim).to(device)
-
-        self.batch_size = batch_size
+        hidden_dim = agent_config['hidden_dim']
+        self.batch_size = agent_config['batch_size']
+        self.value_net = agent_config['value_net'](state_dim, action_dim, hidden_dim).to(device)
+        self.policy_net = agent_config['policy_net'](state_dim, action_dim, hidden_dim).to(device)
+        self.target_value_net = agent_config['value_net'](state_dim, action_dim, hidden_dim).to(device)
+        self.target_policy_net = agent_config['policy_net'](state_dim, action_dim, hidden_dim).to(device)
 
         # Ornstein-Uhlenbeck Noise
         self.ou_noise = OUNoise(action_dim) 
@@ -126,9 +131,9 @@ class DDPG(Agent):
         return value_loss,policy_loss
 
     def update_memory(self, state, action, reward, next_state, done):
-        state = state.reshape(4,)
+        state = state.reshape(state.shape[0],)
         action = action.reshape(1,)
-        next_state = next_state.reshape(4,)
+        next_state = next_state.reshape(state.shape[0],)
         self.replay_buffer.push(state, action, reward, next_state, done)
 
     def load(self,agent_weight_abs):

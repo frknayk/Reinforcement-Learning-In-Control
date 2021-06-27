@@ -1,5 +1,4 @@
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -49,9 +48,9 @@ class PolicyNetwork(nn.Module):
         x = x * p
         return x
 
-    def sigmoid_mod(self,x,p):
+    def sigmoid_mod(self,x,p=10):
         x = x.float()
-        x = 1 / (1 + torch.exp(-x)*10 )
+        x = 1 / (1 + torch.exp(-x)*p )
         x = x * p
         return x
 
