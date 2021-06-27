@@ -46,7 +46,6 @@ class ENV(object):
         self.e_dot = 0
         self.e_int = 0
 
-
     def set_config(self, config):
         if config is None:
             config = self.get_default_env_config()
