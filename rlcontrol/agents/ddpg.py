@@ -6,8 +6,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Normal
 
-from controller.fcnn import ValueNetwork,PolicyNetwork
-from agents.base import Agent
+from rlcontrol.controllers.fcnn import ValueNetwork,PolicyNetwork
+from rlcontrol.agents.base import Agent
 
 
 # Using Cuda

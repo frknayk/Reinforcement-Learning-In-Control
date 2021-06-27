@@ -2,7 +2,7 @@ import setuptools
 from setuptools import setup
 
 setup(name='rlcontrol',
-      version='0.1',
+      version='0.5',
       description='Learn to control dynamical systems with RL algorithms',
       author='frknayk,senceryazici',
       author_email='furkanayik@outlook.com,senceryazici@gmail.com',
