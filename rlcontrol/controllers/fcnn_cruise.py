@@ -33,8 +33,7 @@ class PolicyNetwork(nn.Module):
         """
         x = F.relu(self.linear1(state))
         x = F.relu(self.linear2(x))
-        # x = self.tanh_mod(self.linear3(x),25)
-        x = self.sigmoid_mod(self.linear3(x),10)
+        x = self.sigmoid_mod(self.linear3(x))
         return x
     
     def get_action(self, state):
@@ -42,15 +41,15 @@ class PolicyNetwork(nn.Module):
         action = self.forward(state)
         return action.detach().cpu().numpy()[0]
 
-    def tanh_mod(self,x,p):
+    def tanh_mod(self,x):
         x = x.float()
         x = ( 2 / ( 1 + torch.exp( -2*(x/100) ) ) ) - 1
         x = x * p
         return x
 
-    def sigmoid_mod(self,x,p=10):
+    def sigmoid_mod(self,x,p=1):
         x = x.float()
-        x = 1 / (1 + torch.exp(-x)*p )
+        x = ( 2 / (1 + torch.exp(x)*1) - 1 ) * -1
         x = x * p
         return x
 
@@ -71,3 +70,20 @@ class ValueNetwork(nn.Module):
         x = F.relu(self.linear2(x))
         x = self.linear3(x)
         return x
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    
+    fig = plt.figure()
+    input_list = []
+    output_list = []
+    x = 0
+    explist = np.arange(-5,5,0.1)
+    for i in explist.tolist():
+        inp = i
+        output = (2 / (1 + torch.exp(torch.tensor([inp]))*1) - 1) * -1
+        input_list.append(inp)
+        output_list.append(output)
+
+    plt.plot(input_list,output_list)
+    plt.show()

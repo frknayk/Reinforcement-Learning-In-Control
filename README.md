@@ -25,5 +25,5 @@ Check ```Examples/ex_inference.py``` script. There is only few things you need t
     3. Run organizer.run() and see plots. 
 
 ## TODO
-1. Implement ACC example with f = ma + bv dynamical system
-2. Implement various dynamical systems examples.
+    - Implement various dynamical systems examples.
+    - Specify range for dynamical system parameters while training

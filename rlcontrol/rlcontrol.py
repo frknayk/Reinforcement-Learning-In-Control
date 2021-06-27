@@ -2,16 +2,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorboardX import SummaryWriter
 from rlcontrol.agents.base import Agent
-from rlcontrol.systems.base import ENV
+from rlcontrol.systems.base_systems.base_env import ENV
 from rlcontrol.utils.utils_path import create_log_directories
 np.random.seed(59)
 
 
 #TODO : Rename 
 class Organizer(object):
-    def __init__(self, env:ENV, agent_class:Agent, batch_size=64):
+    def __init__(self, 
+        env:ENV, 
+        agent_class:Agent,
+        agent_config:dict,
+        batch_size=64):
         self.env = env()
-        self.agent = agent_class(state_dim=self.env.state_dim, action_dim=self.env.action_dim)
+        self.agent = agent_class(
+            state_dim=self.env.dimensions['state'],
+            action_dim=self.env.dimensions['action'],
+            agent_config = agent_config)
         self.config = self.get_default_training_config()
         # Place to save traiend weights
         self.log_weight_dir = ""
@@ -70,19 +77,14 @@ class Organizer(object):
             
                 next_state, reward, done = self.env.step(action)
                 state = next_state
-                y1 = np.asscalar(self.env.y)
+                output = self.env.get_info()['state'][0]
+                y1 = np.asscalar(output)
                 u1 = np.asscalar(action[0])
                 
-                # msg1 = "Y(t)/R(t): {0}/{1}".format(y1,self.env.y_set)
-                # print(msg1)
                 output_list.append(y1)
-                reference_list.append(self.env.y_set)
+                reference_list.append(self.env.get_info()['state_ref'][0])
                 reward_list.append(reward)
                 control_sig_list.append(action)
-                # # PLOT
-                # axs[0].clear()
-                # axs[1].clear()
-                # axs[2].clear()
 
                 total_control_signal += u1
                 total_output_signal += y1
@@ -104,19 +106,10 @@ class Organizer(object):
                     self.writer.add_scalar("Train/mean_output_signal", np.mean(total_output_signal), eps)
                     break
 
-            # axs[0].set_title("Output vs Reference")
-            # axs[0].plot(output_list)
-            # axs[0].plot(reference_list)
-            # axs[1].set_title("Reward List")
-            # axs[1].plot(reward_list)
-            # axs[2].set_title("Control Signal List")
-            # axs[2].plot(control_sig_list)
-            # plt.show()
-
             str1 = "Trial : [ {0} ] is completed with reference : [ {1} ]\nOUT-1 : [ {2} ]\nEpisode Reward : [ {3} ]".format(
                 eps+1,
-                self.env.y_set,
-                np.asscalar(self.env.y),
+                self.env.get_info()['state_ref'][0],
+                np.asscalar(self.env.get_info()['state'][0]),
                 episode_reward)
             print(str1)
             print("\n*******************************\n")
