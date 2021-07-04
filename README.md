@@ -31,7 +31,7 @@ Check ```Examples/ex_inference.py``` script. There is only few things you need t
 ## Quick Look
 When an agent is trained to control system in steady-state the inference result would be something like below
 
-<img width=350px height=416px src="images\result.png" alt="Project logo">
+<img width=640px height=480px src="images\result.png" alt="Project logo">
 
 ## TODO
     - Implement various dynamical systems examples.
