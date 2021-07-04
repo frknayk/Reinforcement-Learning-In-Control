@@ -1,11 +1,9 @@
 import random
 import numpy as np
+from numpy.core.defchararray import not_equal
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
-from torch.distributions import Normal
-
 from rlcontrol.controllers.fcnn import ValueNetwork,PolicyNetwork
 from rlcontrol.agents.base import Agent
 
@@ -14,7 +12,9 @@ from rlcontrol.agents.base import Agent
 use_cuda = torch.cuda.is_available()
 device   = torch.device("cuda" if use_cuda else "cpu")
 
+#TODO: Add to config
 np.random.seed(59)
+random.seed(59)
 
 config_default = {
     'batch_size' : 64,
@@ -82,11 +82,17 @@ class DDPG(Agent):
     def apply(self, state, step):
         state = torch.FloatTensor(state).unsqueeze(0).to(device)
         action =  self.policy_net.forward(state)
+        if torch.isnan(action):
+            print("SOME SERIOUS PROBLEMS ENCOUNTERED IN action.cpu().data.numpy()")
+            print("action : ",action)
+            print("STATE : ",state)
+            return None
         # convert torch to np
-        action = action.cpu().data.numpy()
-        action = action.reshape(self.action_dim)
-        action = self.ou_noise.get_action(action, step)
-        return action
+        action_np = action.cpu().data.numpy()
+        action_reshaped = action_np.reshape(self.action_dim)
+        action_noisy = self.ou_noise.get_action(action_reshaped, step)
+
+        return action_noisy
 
     def update_agent(self,episode_number):
         """Update agent weights by replay buffer rollout"""
@@ -111,6 +117,14 @@ class DDPG(Agent):
 
         self.policy_optimizer.zero_grad()
         policy_loss.backward()
+
+        # # TODO : Add this to config
+        # clipping_value = 1
+        # torch.nn.utils.clip_grad_norm(self.policy_net.parameters(), clipping_value)
+        # torch.nn.utils.clip_grad_norm(self.value_net.parameters(), clipping_value)
+        # torch.nn.utils.clip_grad_norm(self.target_policy_net.parameters(), clipping_value)
+        # torch.nn.utils.clip_grad_norm(self.target_value_net.parameters(), clipping_value)
+
         self.policy_optimizer.step()
 
         self.value_optimizer.zero_grad()
@@ -178,7 +192,7 @@ class OUNoise(object):
     def get_action(self, action, t=0):
         ou_state = self.evolve_state()
         self.sigma = self.max_sigma - (self.max_sigma - self.min_sigma) * min(1.0, t / self.decay_period)
-        return np.clip(action + ou_state,-35,35)
+        return np.clip(action + ou_state,-1,1)
 
 class ReplayBuffer:
     def __init__(self, capacity):

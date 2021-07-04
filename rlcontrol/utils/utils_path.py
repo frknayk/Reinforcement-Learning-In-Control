@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import datetime
+import logging
 
 PROJECT_NAME = 'Reinforcement-Learning-In-Control'
 

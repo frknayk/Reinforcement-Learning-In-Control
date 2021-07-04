@@ -7,18 +7,26 @@ from rlcontrol.controllers.fcnn_cruise import PolicyNetwork, ValueNetwork
 from rlcontrol.rlcontrol import Organizer
 
 ddpg_cruise_config = {
-    'batch_size' : 64,
+    'batch_size' : 256,
     'hidden_dim' : 32,
     'policy_net' : PolicyNetwork,
     'value_net' : ValueNetwork
 }
 
+env_config = CruiseSystem.get_config_default()
+env_config['random_state_init'] = True
+
 train_organizer = Organizer(
     env=CruiseSystem,
     agent_class=DDPG,
-    agent_config = ddpg_cruise_config)
-
+    agent_config = ddpg_cruise_config,
+    env_config=env_config)
 train_config = train_organizer.get_default_training_config()
-train_config['max_episode'] = 500
-train_config['max_step'] = 1000
+train_config['enable_log'] = True
+train_config['max_episode'] = 150
+train_config['algorithm_name'] = "DDPG"
+train_config['max_step'] = 500
+train_config['plotting']['enable'] = False
+train_config['plotting']['freq'] = 10
 train_organizer.train(train_config)
+

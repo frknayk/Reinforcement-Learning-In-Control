@@ -1,5 +1,7 @@
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy.core.numeric import Inf
 from tensorboardX import SummaryWriter
 from rlcontrol.agents.base import Agent
 from rlcontrol.systems.base_systems.base_env import ENV
@@ -13,7 +15,7 @@ class Organizer(object):
         env:ENV, 
         agent_class:Agent,
         agent_config:dict,
-        batch_size=64):
+        env_config:dict):
         self.env = env()
         self.agent = agent_class(
             state_dim=self.env.dimensions['state'],
@@ -25,8 +27,7 @@ class Organizer(object):
         # Place to save tensorboard outputs
         self.log_tensorboard_dir = ""
 
-    def set_log_directories(self):
-        algorithm_name = "DDPG" #TODO:Make this parametric
+    def set_log_directories(self,algorithm_name="DDPG"):
         algorithm_relative_name = None
         project_abs_path = None
         project_abs_path, algorithm_relative_name = create_log_directories(algorithm_name)
@@ -38,46 +39,82 @@ class Organizer(object):
 
     @staticmethod
     def get_default_training_config():
-        training_config = {
+        default_config_training = {
+            'enable_log' : True, # Create log folders and log weights and plots
             'max_episode' : 10,
             'max_step' : 500,
             'freq_weight_log' : 50, # Frequency of logging trained weights 
             'freq_tensorboard_log' : 50, # Frequency of logging training stats to tensorboard
+            'algorithm_name' : 'Unknown',
+            'plotting' : {
+                'freq' : 10, # Plot per episode
+                'enable' : False}
         }
-        return training_config
+        return default_config_training
+
+    @staticmethod
+    def get_default_inference_config():
+        default_config_inference = {
+            'max_episode' : 10,
+            'max_step' : 500,
+        }
+        return default_config_inference
 
     def train(self, training_config=None):
-        self.set_log_directories()
-        self.config = self.get_default_training_config() if training_config is None else training_config         
-        best_reward = -200000
+        self.config = self.get_default_training_config() if training_config is None else training_config        
+ 
+        # TODO: Move this to logging class when created
+        if self.config.get("enable_log") is True:
+            self.set_log_directories(self.config.get("algorithm_name"))
+
+        best_reward = -99999
         batch_size = self.agent.get_batch_size()
-        for eps in range(self.config['max_episode']):
-            
+
+        for eps in range(self.config['max_episode']):    
+            # Log plot list
+            output_list = []
+            reward_list=[]
+            reference_list=[]
+            control_sig_list=[]
+
+            # Reset agent to random state
             self.agent.reset()
 
+            # Zero log params 
+            # TODO: Make this config
             episode_reward = 0
             episode_policy_loss = 0
             episode_value_loss = 0
             total_control_signal = 0
             total_output_signal = 0
 
-            # DEBUG
-            fig, axs = plt.subplots(3)
-            output_list = []
-            reward_list=[]
-            reference_list=[]
-            control_sig_list=[]
-
+            # Reset envrionment to random state
             state = self.env.reset()
 
+            # One training loop
             for step in range(self.config['max_step']):
                 action = self.agent.apply(state, step)
+                if action is None:
+                    print("NaN value detected, network is destroyed. Exiting training ..")
+                    print("action : ",action)
+                    if self.config.get("enable_log") is True: self.writer.close()
+                    sys.exit()
 
                 total_control_signal = total_control_signal + action
-            
                 next_state, reward, done = self.env.step(action)
                 state = next_state
                 output = self.env.get_info()['state'][0]
+
+                if np.isnan(action) or np.isnan(state) or np.isnan(next_state) or np.isnan(done):
+                    print("NaN value detected, network is destroyed. Exiting training ..")
+                    print("state : ",state)
+                    print("next state : ",next_state)
+                    print("action : ",action)
+                    print("reward : ",reward)
+                    print("done :",done)
+                    if self.config.get("enable_log") is True: self.writer.close()
+                    sys.exit()
+
                 y1 = np.asscalar(output)
                 u1 = np.asscalar(action[0])
                 
@@ -98,34 +135,54 @@ class Organizer(object):
                     episode_policy_loss += policy_loss
                     episode_value_loss += value_loss
 
-                if done:               
-                    self.writer.add_scalar("Train/reward", episode_reward, eps)
-                    self.writer.add_scalar("Train/policy_loss", episode_policy_loss, eps)
-                    self.writer.add_scalar("Train/value_loss", episode_value_loss, eps)
-                    self.writer.add_scalar("Train/mean_control_signal", np.mean(total_control_signal), eps)
-                    self.writer.add_scalar("Train/mean_output_signal", np.mean(total_output_signal), eps)
+                # TODO: Move this to logging class when created
+                if done:
+                    if self.config.get("enable_log") is True:
+                        self.writer.add_scalar("Train/reward", episode_reward, eps)
+                        self.writer.add_scalar("Train/policy_loss", episode_policy_loss, eps)
+                        self.writer.add_scalar("Train/value_loss", episode_value_loss, eps)
+                        self.writer.add_scalar("Train/mean_control_signal", np.mean(total_control_signal), eps)
+                        self.writer.add_scalar("Train/mean_output_signal", np.mean(total_output_signal), eps)
+                        self.writer.close()
                     break
 
+            
+            str_log = ""
             str1 = "Trial : [ {0} ] is completed with reference : [ {1} ]\nOUT-1 : [ {2} ]\nEpisode Reward : [ {3} ]".format(
                 eps+1,
                 self.env.get_info()['state_ref'][0],
                 np.asscalar(self.env.get_info()['state'][0]),
                 episode_reward)
-            print(str1)
+            str_log = str1 + " and lasted {0} steps".format(step)
+            print(str_log)
             print("\n*******************************\n")
-            
-            # Saving Model
-            self.agent.save(self.log_weight_dir+'/agent_'+str(eps)+'.pth')
 
-            # Save best model seperately
-            if(episode_reward > best_reward) : 
-                self.agent.save(self.log_weight_dir+'/agent_best.pth')
+            # TODO: Move this to logging class when created
+            # Saving Model
+            if self.config.get("enable_log") is True:
+                self.agent.save(self.log_weight_dir+'/agent_'+str(eps)+'.pth')
+
+            if episode_reward > best_reward:
                 best_reward = episode_reward
+                # Save best model seperately
+                if self.config.get("enable_log") is True: self.agent.save(self.log_weight_dir+'/agent_best.pth')
+
+            # TODO: Create another class for plotting
+            # Plot whithin some episodes
+            if training_config['plotting']['enable'] is True and \
+                eps % training_config['plotting']['freq'] == 0:
+                fig, axs = plt.subplots(3)
+                axs[0].set_title("Output vs Reference")
+                axs[0].plot(output_list)
+                axs[0].plot(reference_list)
+                axs[1].set_title("Rewards")
+                axs[1].plot(reward_list)
+                axs[2].set_title("Control Signals")
+                axs[2].plot(control_sig_list)
+                plt.show()
 
     def inference(self, agent_path, inference_config=None):
         self.config = self.get_default_training_config() if inference_config is None else inference_config 
-        self.config['max_step'] = 5500
-        self.config['max_episode'] = 100
 
         for eps in range(self.config['max_episode']):
             # Saving Model
@@ -144,7 +201,7 @@ class Organizer(object):
             reward_list=[]
             reference_list=[]
             control_sig_list=[]
-
+            
             for step in range(self.config['max_step']):
                 action = self.agent.apply(state, step)
 
@@ -152,13 +209,12 @@ class Organizer(object):
             
                 next_state, reward, done = self.env.step(action)
 
-                y1 = np.asscalar(self.env.y)
+                y1 = np.asscalar(state[0])
                 u1 = np.asscalar(action[0])
-                
-                # msg1 = "Y(t)/R(t): {0}/{1}".format(y1,self.env.y_set)
-                # print(msg1)
+                ref = self.env.get_info().get("state_ref")
+    
                 output_list.append(y1)
-                reference_list.append(self.env.y_set)
+                reference_list.append(ref)
                 reward_list.append(reward)
                 control_sig_list.append(action)
 
@@ -169,22 +225,20 @@ class Organizer(object):
                 episode_reward = episode_reward + reward
                 
                 state = next_state
-                if done:
-                    break
 
             axs[0].set_title("Output vs Reference")
             axs[0].plot(output_list)
             axs[0].plot(reference_list)
-            axs[1].set_title("Reward List")
+            axs[1].set_title("Rewards")
             axs[1].plot(reward_list)
-            axs[2].set_title("Control Signal List")
+            axs[2].set_title("Control Signals")
             axs[2].plot(control_sig_list)
             plt.show()
 
             str1 = "Trial : [ {0} ] is completed with reference : [ {1} ]\nOUT-1 : [ {2} ]\nEpisode Reward : [ {3} ]".format(
                 eps+1,
-                self.env.y_set,
-                np.asscalar(self.env.y),
+                self.env.get_info().get("state_ref"),
+                np.asscalar(self.env.get_info().get("state")[0]),
                 episode_reward)
             print(str1)
             print("\n*******************************\n")

@@ -6,16 +6,22 @@ given in state-space form
 import numpy as np
 import math 
 
+env_config_dict_default = {
+    'dynamics_config':None,
+    'set_point':None,
+    'steady_state_tresh' : None,
+    'random_state_init' : None,
+    'init_state' : None}
 
 class ENV(object):
-    def __init__(self,env_config):
+    def __init__(self,env_config:env_config_dict_default):
         """Base environment constructor"""
         self.dimensions = {'state':int,'action':int}
         self.__state = None
         self.__set_point = None
         self.__done = bool
         self.rew = 0
-        self.config = {'dynamics_config':None,'set_point':None}
+        self.config = env_config.copy()
         self.model = None
 
     @staticmethod
