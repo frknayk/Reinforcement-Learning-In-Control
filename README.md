@@ -1,4 +1,4 @@
-# Reinforcement-Learning-in-Control-Applications
+# Designing Controllers via Deep Reinforcement Learning
 
 
 ## About
@@ -36,8 +36,9 @@ When an agent is trained to control system in steady-state the inference result 
 ## TODO
     - Implement various dynamical systems examples.
     - Specify range for dynamical system parameters while training
-    - Fix all TODOs
+    - List all TODOs here
     - Fix tensorboard issue
     - Create logger class
     - Create plotter class
     - Seperate training/inference organizers.
+    - Integrate with rllib/ray
