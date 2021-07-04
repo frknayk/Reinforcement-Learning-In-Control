@@ -18,7 +18,9 @@ Install the package locally by running : ```pip3 install -e .```
     and giving config as parameter to ```train()``` function.
 
 ### Watch Training
-- Watch training process from tensorboard file which is created by date and time inside Logs/ folder automatically. 
+    1. cd Logs/ 
+    2. Run the terminal and type ```tensorboard --logdir=runs```
+    3. Open the link in the terminal in any browser to watch (Chrome is recommended)
 
 ## Inference 
 Check ```Examples/ex_inference.py``` script. There is only few things you need to test your own Rl controller,
