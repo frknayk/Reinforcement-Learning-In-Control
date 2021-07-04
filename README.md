@@ -14,9 +14,11 @@ Install the package locally by running : ```pip3 install -e .```
     2. Use the RL algorithm from rlcontrol/agents/algorithm_name
     3. Gave them as parameter to the Organizer class which would handle all training process and log training events.
 
-- Watch training process from tensorboard file which is created by date and time inside Logs/ folder automatically. 
 - You can always change training parameters by the getting them with```get_default_training_config()``` function
     and giving config as parameter to ```train()``` function.
+
+### Watch Training
+- Watch training process from tensorboard file which is created by date and time inside Logs/ folder automatically. 
 
 ## Inference 
 Check ```Examples/ex_inference.py``` script. There is only few things you need to test your own Rl controller,
@@ -27,3 +29,8 @@ Check ```Examples/ex_inference.py``` script. There is only few things you need t
 ## TODO
     - Implement various dynamical systems examples.
     - Specify range for dynamical system parameters while training
+    - Fix all TODOs
+    - Fix tensorboard issue
+    - Create logger class
+    - Create plotter class
+    - Seperate training/inference organizers.
