@@ -28,6 +28,11 @@ Check ```Examples/ex_inference.py``` script. There is only few things you need t
     2. Give absolute path of the trained agent.
     3. Run organizer.run() and see plots. 
 
+## Quick Look
+When an agent is trained to control system in steady-state the inference result would be something like below
+
+<img width=350px height=416px src="images\result.png" alt="Project logo">
+
 ## TODO
     - Implement various dynamical systems examples.
     - Specify range for dynamical system parameters while training
