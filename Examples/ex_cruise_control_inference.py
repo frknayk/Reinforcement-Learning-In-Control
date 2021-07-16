@@ -26,7 +26,7 @@ organizer = Organizer(
     env_config=env_config)
 
 # Trained agent path relative to project folder
-agent_path = get_project_path() + "/Logs/Agents/DDPG_2021_7_4_18_20_39/agent_35.pth"
+agent_path = get_project_path() + "/Logs/Agents/DDPG_2021_7_16_23_9_27/agent_40.pth"
 
 # Set inference config
 config_inference = organizer.get_default_inference_config()

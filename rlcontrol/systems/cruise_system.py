@@ -78,7 +78,7 @@ class CruiseSystem(ENV):
 
     def reward(self):
         """Reward is minus absolute distance from speed to reference speed"""
-
+        # BUG: Current reward logic causes high rewards for early stoppage. 
         if self.__state[0]<0 or self.__state[0]>45:
             self.rew = -100
             return

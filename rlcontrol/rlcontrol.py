@@ -5,7 +5,8 @@ from numpy.core.numeric import Inf
 from tensorboardX import SummaryWriter
 from rlcontrol.agents.base import Agent
 from rlcontrol.systems.base_systems.base_env import ENV
-from rlcontrol.utils.utils_path import create_log_directories
+from rlcontrol.logger.logger import Logger
+
 np.random.seed(59)
 
 
@@ -16,26 +17,13 @@ class Organizer(object):
         agent_class:Agent,
         agent_config:dict,
         env_config:dict):
-        self.env = env()
+        self.env = env(env_config)
         self.agent = agent_class(
             state_dim=self.env.dimensions['state'],
             action_dim=self.env.dimensions['action'],
             agent_config = agent_config)
         self.config = self.get_default_training_config()
-        # Place to save traiend weights
-        self.log_weight_dir = ""
-        # Place to save tensorboard outputs
-        self.log_tensorboard_dir = ""
-
-    def set_log_directories(self,algorithm_name="DDPG"):
-        algorithm_relative_name = None
-        project_abs_path = None
-        project_abs_path, algorithm_relative_name = create_log_directories(algorithm_name)
-        project_abs_path = project_abs_path + "/Logs/"
-        self.log_weight_dir = project_abs_path + "Agents/" + algorithm_relative_name
-        self.log_tensorboard_dir = project_abs_path+"runs/"+algorithm_relative_name
-        # TODO: Add hyperparameters to tensorboard
-        self.writer = SummaryWriter(comment="-"+algorithm_name,log_dir=self.log_tensorboard_dir+'/')
+        self.logger = Logger()
 
     @staticmethod
     def get_default_training_config():
@@ -65,7 +53,7 @@ class Organizer(object):
  
         # TODO: Move this to logging class when created
         if self.config.get("enable_log") is True:
-            self.set_log_directories(self.config.get("algorithm_name"))
+            self.logger.set(self.config.get("algorithm_name"))
 
         best_reward = -99999
         batch_size = self.agent.get_batch_size()
@@ -97,7 +85,7 @@ class Organizer(object):
                 if action is None:
                     print("NaN value detected, network is destroyed. Exiting training ..")
                     print("action : ",action)
-                    if self.config.get("enable_log") is True: self.writer.close()
+                    if self.config.get("enable_log") is True: self.logger.close()
                     sys.exit()
 
                 total_control_signal = total_control_signal + action
@@ -112,7 +100,7 @@ class Organizer(object):
                     print("action : ",action)
                     print("reward : ",reward)
                     print("done :",done)
-                    if self.config.get("enable_log") is True: self.writer.close()
+                    if self.config.get("enable_log") is True: self.logger.close()
                     sys.exit()
 
                 y1 = np.asscalar(output)
@@ -135,42 +123,43 @@ class Organizer(object):
                     episode_policy_loss += policy_loss
                     episode_value_loss += value_loss
 
-                # TODO: Move this to logging class when created
                 if done:
                     if self.config.get("enable_log") is True:
-                        self.writer.add_scalar("Train/reward", episode_reward, eps)
-                        self.writer.add_scalar("Train/policy_loss", episode_policy_loss, eps)
-                        self.writer.add_scalar("Train/value_loss", episode_value_loss, eps)
-                        self.writer.add_scalar("Train/mean_control_signal", np.mean(total_control_signal), eps)
-                        self.writer.add_scalar("Train/mean_output_signal", np.mean(total_output_signal), eps)
-                        self.writer.close()
+                        train_dict = {
+                            "Train/reward" : episode_reward,
+                            "Train/policy_loss" : episode_policy_loss,
+                            "Train/value_loss" : episode_value_loss,
+                            "Train/mean_control_signal" : np.mean(total_control_signal),
+                            "Train/mean_output_signal" :  np.mean(total_output_signal)}
+                        self.logger.log_tensorboard_train(train_dict, eps)
                     break
-
             
-            str_log = ""
-            str1 = "Trial : [ {0} ] is completed with reference : [ {1} ]\nOUT-1 : [ {2} ]\nEpisode Reward : [ {3} ]".format(
-                eps+1,
-                self.env.get_info()['state_ref'][0],
-                np.asscalar(self.env.get_info()['state'][0]),
-                episode_reward)
-            str_log = str1 + " and lasted {0} steps".format(step)
-            print(str_log)
-            print("\n*******************************\n")
+            # Print progress
+            train_print_dict = {
+                'eps' : eps+1,
+                'state_reference' : self.env.get_info()['state_ref'][0],
+                'state' : np.asscalar(self.env.get_info()['state'][0]),
+                'reward' : episode_reward,
+                'step' : step,
+            }
+            self.logger.print_progress(train_print_dict)
 
             # TODO: Move this to logging class when created
             # Saving Model
             if self.config.get("enable_log") is True:
-                self.agent.save(self.log_weight_dir+'/agent_'+str(eps)+'.pth')
+                self.agent.save(self.logger.log_weight_dir+'/agent_'+str(eps)+'.pth')
 
+            # Save best model seperately
             if episode_reward > best_reward:
                 best_reward = episode_reward
-                # Save best model seperately
-                if self.config.get("enable_log") is True: self.agent.save(self.log_weight_dir+'/agent_best.pth')
+                if self.config.get("enable_log") is True: self.agent.save(
+                    self.logger.log_weight_dir+'/agent_best.pth')
 
             # TODO: Create another class for plotting
             # Plot whithin some episodes
             if training_config['plotting']['enable'] is True and \
-                eps % training_config['plotting']['freq'] == 0:
+                eps % training_config['plotting']['freq'] == 0 and \
+                eps != 0:
                 fig, axs = plt.subplots(3)
                 axs[0].set_title("Output vs Reference")
                 axs[0].plot(output_list)

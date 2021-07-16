@@ -26,7 +26,7 @@ train_config['enable_log'] = True
 train_config['max_episode'] = 150
 train_config['algorithm_name'] = "DDPG"
 train_config['max_step'] = 500
-train_config['plotting']['enable'] = False
+train_config['plotting']['enable'] = True
 train_config['plotting']['freq'] = 10
 train_organizer.train(train_config)
 
