@@ -1,4 +1,3 @@
-import random
 from dataclasses import dataclass
 from typing import List
 
@@ -8,13 +7,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from con_sys import check_controllability
 from gym import Env
-from gym.spaces import Box, Discrete
+from gym.spaces import Box
 
 
 @dataclass
 class ConfigSISO:
-    action_space: List[float]
-    obs_space: List[float]
+    action_space: List[float]  # lower/upper limits
+    obs_space: List[float]  # lower/upper limits
     num: List[int]
     den: List[int]
     x_0: List[float]
@@ -29,9 +28,16 @@ class LinearSISOEnv(Env):
     """Linear Time-Invariant Single Input-Output Dynamic System"""
 
     def __init__(self, env_config: ConfigSISO):
+        super(LinearSISOEnv, self).__init__()
         self.env_config = env_config
-        self.action_space = env_config.action_space  # action space limits
-        self.observation_space = env_config.obs_space  # observation space limits
+        self.action_space = Box(
+            low=env_config.action_space[0],
+            high=env_config.action_space[1],
+            dtype=np.float32,
+        )  # action space limits
+        self.observation_space = Box(
+            low=env_config.obs_space[0], high=env_config.obs_space[1], dtype=np.float32
+        )  # observation space limits
         self.sys = ct.tf2ss(env_config.num, env_config.den)  # Transfer function
         if not check_controllability(self.sys):
             raise Exception("System is not controllable!, Try another system.")
