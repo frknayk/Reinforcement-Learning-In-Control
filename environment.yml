@@ -1,0 +1,32 @@
+name: rlcontrol
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - ca-certificates=2023.5.7
+  - cffi=1.15.1
+  - cfgv=3.3.1
+  - distlib=0.3.6
+  - filelock=3.12.2
+  - identify=2.5.24
+  - libffi=3.4.4
+  - nodeenv=1.8.0
+  - openssl=3.0.9
+  - pip=23.1.2
+  - platformdirs=3.8.0
+  - pre-commit=3.3.3
+  - pycparser=2.21
+  - python=3.8.16
+  - python_abi=3.8
+  - pyyaml=6.0
+  - setuptools=67.8.0
+  - sqlite=3.41.2
+  - typing-extensions=4.7.0
+  - typing_extensions=4.7.0
+  - ukkonen=1.0.1
+  - vc=14.2
+  - virtualenv=20.23.1
+  - vs2015_runtime=14.27.29016
+  - wheel=0.38.4
+  - yaml=0.2.5
+prefix: C:\Users\Furka\anaconda3\envs\rlcontrol
