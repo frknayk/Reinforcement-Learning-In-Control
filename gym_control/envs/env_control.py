@@ -120,6 +120,9 @@ class LinearSISOEnv(gym.Env):
         self.y = Y_sim[1]
         done = self.__check_steady_state()
         reward = self.__calculate_reward(self.env_config["y_ref"], self.y)
+        if self.tick_sim >= self.t_all.shape[0]:
+            done = True
+            reward = -self.env_config["y_ref"]
         info = {"time_current": T_sim}
         obs = self._get_obs()
         info = self._get_info()
