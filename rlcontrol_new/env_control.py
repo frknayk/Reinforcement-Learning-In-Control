@@ -1,5 +1,5 @@
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import List
 
 import control as ct
@@ -77,7 +77,6 @@ class LinearSISOEnv(Env):
         self.observation_space = Box(
             low=env_config.obs_space[0], high=env_config.obs_space[1], dtype=np.float32
         )  # observation space limits
-        # self.sys = ct.tf2ss(env_config.num, env_config.den)  # Transfer function
         sys_tf = ct.tf(env_config.num, env_config.den)
         self.sys = ct.LinearIOSystem(sys_tf, inputs="u", outputs="y")
         if not check_controllability(self.sys):
@@ -229,7 +228,7 @@ def example_pid_control(kp, ki, kd):
     )
     env = LinearSISOEnv(config_siso)
     env.reset()
-    c_p = create_pid(kp, 0, kd)
+    c_p = create_pid(kp, ki, kd)
     env.sys = ct.series(env.sys, c_p)
     env.closed_loop_step_response()
     env.render()
@@ -237,4 +236,4 @@ def example_pid_control(kp, ki, kd):
 
 if __name__ == "__main__":
     # example_open_loop()
-    example_pid_control(300, 5)
+    example_pid_control(300, 10, 5)

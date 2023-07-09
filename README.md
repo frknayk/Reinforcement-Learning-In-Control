@@ -17,8 +17,10 @@ conda create --name rlcontrol --file requirements.txt
 <img width=640px height=480px src="images\result.png" alt="Project logo">
 
 ## TODO
-    - Create custom gym env for simulating dynamical system responses
     - Integrate custom gym env to rllib
     - Train environemnt with rllib
     - Streamlit integration(enter dynamical system from app)
     - Dockerize
+
+## DONE
+    - Create custom gym env for simulating dynamical system responses
