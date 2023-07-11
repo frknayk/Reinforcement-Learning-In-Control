@@ -4,7 +4,7 @@ import control as ct
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
-from gymnasium.spaces import Box, Discrete
+from gymnasium.spaces import Box
 
 ConfigSISO = {
     # lower/upper limits
@@ -19,6 +19,8 @@ ConfigSISO = {
     "t_0": float,
     "t_end": float,
     "y_ref": float,
+    # How many seconds will be accepted as achieved ss
+    "steady_state_indicator": float,
 }
 
 
@@ -52,7 +54,40 @@ class LinearSISOEnv(gym.Env):
         self.tick_sim = 0  # Simulation time index
         self.x = np.zeros(self.sys.nstates)  # system state
         self.y = env_config["y_0"]
+        self.y_ref = env_config["y_ref"]
         self.sim_results = []
+        self.counter_ss = 0
+
+    def _get_obs(self):
+        return np.array([self.y], dtype=np.float32)
+
+    def _get_info(self):
+        return {"reward_total": self.collected_reward, "states": self.x}
+
+    def __check_steady_state(self):
+        """If system response is achieved to steady-state or not"""
+        if self.y <= 0:
+            return False
+        if (self.y_ref - self.y) / self.y_ref < 0.02:
+            self.counter_ss += 1
+            if self.counter_ss >= self.env_config["steady_state_indicator"]:
+                return True
+            return False
+        # if the difference is not lie around 2% of reference consecutively,
+        # reset the counter
+        self.counter_ss = 0
+        return False
+
+    @staticmethod
+    def __calculate_reward(y_ref, y):
+        # Assuming y_ref : positive
+        e_t = y_ref - y  # e(t)
+        e_t_normalized = e_t / y_ref
+        if y < 0:
+            return -e_t_normalized
+        if y > y_ref:
+            return e_t_normalized
+        return -e_t_normalized
 
     def reset(self, *, seed=None, options=None):
         # We need the following line to seed self.np_random
@@ -65,35 +100,6 @@ class LinearSISOEnv(gym.Env):
         info = self._get_info()
         return observation, info
 
-    def _get_obs(self):
-        return np.array([self.y], dtype=np.float32)
-
-    def _get_info(self):
-        return {"reward_total": self.collected_reward}
-
-    def __check_steady_state(self):
-        """If system response is achieved to steady-state or not"""
-        epsilon = 0.01
-        diff = np.sum(np.absolute(self.y - self.env_config["y_ref"]))
-        if (diff < epsilon) or self.y <= 0:
-            return True
-        return False
-
-    @staticmethod
-    def __calculate_reward(y_ref, y):
-        diff = y_ref - y
-        tuner = y_ref
-        if diff < 0.01 * tuner:
-            reward = 5
-        if (diff < 0.05 * tuner) and (diff > 0.01 * tuner):
-            reward = 0.5
-        if (diff < 0.1 * tuner) and (diff > 0.05 * tuner):
-            reward = 0.1
-        else:
-            reward = -diff
-        reward = -np.abs(diff)
-        return reward
-
     def step(self, action):
         """Apply control signal to system
 
@@ -104,10 +110,16 @@ class LinearSISOEnv(gym.Env):
 
         Returns
         -------
-        _type_
-            _description_
+        Tuple
+            obs, reward, done, truncated, info
         """
         ###### One step simulation ######
+        if self.tick_sim >= self.t_all.shape[0] - 1:
+            print(f"tick:{self.tick_sim} ? t_all:{self.t_all.shape[0]}")
+            obs, info = self.reset()
+            done = True
+            reward = -self.env_config["y_ref"]
+            return obs, reward, done, False, info
         T_sim = [self.t_all[self.tick_sim], self.t_all[self.tick_sim + 1]]
         self.tick_sim += 1
         if type(action) == np.ndarray:
@@ -119,15 +131,14 @@ class LinearSISOEnv(gym.Env):
         self.x = X_sim[:, 1]
         self.y = Y_sim[1]
         done = self.__check_steady_state()
+        # if done:
+        #     yref = self.env_config["y_ref"]
+        #     # print(f"DONE TRIGGERED!: y_ref:{yref} - y:{self.y}")
         reward = self.__calculate_reward(self.env_config["y_ref"], self.y)
-        if self.tick_sim >= self.t_all.shape[0]:
-            done = True
-            reward = -self.env_config["y_ref"]
         info = {"time_current": T_sim}
         obs = self._get_obs()
         info = self._get_info()
         self.sim_results.append([T_sim[-1], action, Y_sim[-1]])
-        # observation, reward, terminated, False, info
         return obs, reward, done, False, info
 
     def open_loop_step_response(self, action: float = 1.0):
@@ -138,6 +149,7 @@ class LinearSISOEnv(gym.Env):
             self.step(action)
 
     def closed_loop_step_response(self, action: float = 1.0):
+        # sys = C(s)*G(s) -> TF(s)= C(s)G(s)/1+C(s)G(s) where TF:closed-loop tf fnc.
         self.sys = ct.feedback(self.sys, 1)
         num_sim = int(
             (self.env_config["t_end"] - self.env_config["t_0"]) / self.env_config["dt"]
@@ -211,16 +223,18 @@ def example_open_loop():
     """Apply control signal (1) 100 times to system and render"""
     # Instantiate the env
     config_siso = {
-        "action_space": [-1, 1],
+        "action_space": [-5, 5],
         "obs_space": [-10, 10],
         "num": [1],
         "den": [1, 10, 20],
         "x_0": [0],
-        "dt": 0.01,
+        "dt": 1,
         "y_0": 0,
         "t_0": 0,
-        "t_end": 5,
-        "y_ref": 5,
+        "t_end": 500,
+        "y_ref": 1,
+        # number of ticks
+        "steady_state_indicator": 10,
     }
     env = LinearSISOEnv(config_siso)
     env.open_loop_step_response(1)
@@ -230,16 +244,18 @@ def example_open_loop():
 def example_pid_control(kp, ki, kd):
     # Masss-Spring-Damper system
     config_siso = {
-        "action_space": [-1, 1],
+        "action_space": [-5, 5],
         "obs_space": [-10, 10],
         "num": [1],
         "den": [1, 10, 20],
         "x_0": [0],
-        "dt": 0.01,
+        "dt": 1,
         "y_0": 0,
         "t_0": 0,
-        "t_end": 5,
-        "y_ref": 5,
+        "t_end": 500,
+        "y_ref": 1,
+        # number of ticks
+        "steady_state_indicator": 10,
     }
     env = LinearSISOEnv(config_siso)
     env.reset()
@@ -249,6 +265,60 @@ def example_pid_control(kp, ki, kd):
     env.render()
 
 
+def example_pid_control_2(kp, ki, kd):
+    # Masss-Spring-Damper system
+    env_config = {
+        "action_space": [-5, 5],
+        "obs_space": [-10, 10],
+        "num": [1],
+        "den": [1, 10, 20],
+        "x_0": [0],
+        "dt": 1,
+        "y_0": 0,
+        "t_0": 0,
+        "t_end": 500,
+        "y_ref": 1,
+        # number of ticks
+        "steady_state_indicator": 10,
+    }
+    env = LinearSISOEnv(env_config)
+    sys_controller = env.create_pid(kp, ki, kd)
+    # u(t) = C(e(t))
+    num_sim = int((env_config["t_end"] - env_config["t_0"]) / env_config["dt"])
+    obs, info = env.reset()
+    for iter_idx in range(num_sim):
+        e_t = env_config["y_ref"] - obs[0]
+
+        pass
+
+    env.render()
+
+
+def example_custom_signal():
+    # Masss-Spring-Damper system
+    config_siso = {
+        "action_space": [-5, 5],
+        "obs_space": [-10, 10],
+        "num": [1],
+        "den": [1, 10, 20],
+        "x_0": [0],
+        "dt": 1,
+        "y_0": 0,
+        "t_0": 0,
+        "t_end": 500,
+        "y_ref": 1,
+        # number of ticks
+        "steady_state_indicator": 10,
+    }
+    env = LinearSISOEnv(config_siso)
+    obs, info = env.reset()
+    total_ticks = int(config_siso["t_end"] / config_siso["dt"])
+    for x in range(total_ticks):
+        # env.step(config_siso["action_space"][1])
+        env.step(25)
+    env.render()
+
+
 if __name__ == "__main__":
-    # example_open_loop()
-    example_pid_control(300, 10, 5)
+    # example_pid_control_2(300, 10, 5)
+    example_custom_signal()
