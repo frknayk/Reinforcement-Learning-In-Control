@@ -15,16 +15,20 @@ Install gym_control environment: `pip install -e .`
 - Look for raylib
 * Track experiments via: tensorboard --logdir=~/ray_results
 
+## Run App
+streamlit run app.py
+
 
 <img width=640px height=480px src="images\result.png" alt="Project logo">
 
 ## TODO
+    - Make Trainer runnable by episode by episode, and plot graphs to streamlit.
     - Train environemnt with rllib
     - Integrate integral error to rlcontrol
     - Replace all prints, with logger
-    - Streamlit integration(enter dynamical system from app)
     - Dockerize
 
 ## DONE
     - Create custom gym env for simulating dynamical system responses
     - Integrate custom gym env to rllib
+    - Streamlit integration(enter dynamical system from app)

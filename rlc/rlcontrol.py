@@ -81,7 +81,7 @@ class Trainer(object):
             # Log plot list
             output_list = [float(observation)]
             reward_list = [0]
-            reference_list = [env_config["y_ref"]]
+            reference_list = [self.env.env_config["y_ref"]]
             control_sig_list = [np.array([0])]
 
             # One training loop
@@ -210,6 +210,8 @@ class Trainer(object):
                 axs[2].set_title("Control Signals")
                 axs[2].plot(control_sig_list)
                 plt.show()
+
+        return True
 
     def inference(self, agent_path, inference_config=None):
         self.config = (
