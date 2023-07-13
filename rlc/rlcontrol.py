@@ -71,10 +71,24 @@ class Trainer(object):
         self.config = train_config
         self.logger.set(train_config["algorithm_name"])
 
-    def train_one_episode(self):
-        """Train the agent 1-episode"""
+    def train_one_episode(self, test_mode: bool = False):
+        """Run simulation for one episode and train by default.
+
+        Parameters
+        ----------
+        test_mode : bool, optional
+            If True, agent's parameters will not be updated(inference mode), \
+                by default False
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+
         self.agent.reset()
         observation, _ = self.env.reset()
+        agent_loss_dict = None
         episode_result_dict = episode_result_dict_default.copy()
         episode_result_dict["output_list"] = []
         episode_result_dict["reward_list"] = []
@@ -97,10 +111,11 @@ class Trainer(object):
             next_observation, reward, done, _, _ = self.env.step(action)
             self._check_output(action, observation, next_observation, done)
             observation = next_observation
-            self.agent.update_memory(
-                observation, action, reward, next_observation, done
-            )
-            agent_loss_dict = self.agent.update_agent(step)
+            if not test_mode:
+                self.agent.update_memory(
+                    observation, action, reward, next_observation, done
+                )
+                agent_loss_dict = self.agent.update_agent(step)
             episode_result_dict = self._update_iter_dict(
                 episode_result_dict,
                 next_observation,
@@ -113,11 +128,14 @@ class Trainer(object):
                 break
         sim_results = np.array(self.env.sim_results)
         episode_result_dict["sim_time"] = list(sim_results[:, 0])
-        # episode_result_dict["sim_time"].insert(0,-1)
         return episode_result_dict
 
     def train_step(self):
         yield self.train_one_episode()
+
+    def test_best_agent(self):
+        self.load_best_agent()
+        return self.train_one_episode(test_mode=True)
 
     def run(self, training_config: dict):
         self.set_training_config(training_config)
@@ -198,6 +216,9 @@ class Trainer(object):
             episode_result_dict["episode_policy_loss"] = agent_loss_dict["policy_loss"]
             episode_result_dict["episode_value_loss"] = agent_loss_dict["value_loss"]
         return episode_result_dict
+
+    def load_best_agent(self):
+        self.agent.load(self.logger.log_weight_dir + "/agent_best.pth")
 
 
 def frequency_check(freq, eps):

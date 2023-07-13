@@ -22,13 +22,17 @@ streamlit run app.py
 <img width=640px height=480px src="images\result.png" alt="Project logo">
 
 ## TODO
-    - Make Trainer runnable by episode by episode, and plot graphs to streamlit.
+    - Make app multiple pages
+    - Add Experiment name to Introduction page
+    - Add Training and Inference Pages. And Inference page must be able to load
+    latest training's best agent in selected folder to test agent.
     - Train environemnt with rllib
     - Integrate integral error to rlcontrol
-    - Replace all prints, with logger
     - Dockerize
 
 ## DONE
+    - Make Trainer runnable by episode by episode, and plot graphs to streamlit.
     - Create custom gym env for simulating dynamical system responses
     - Integrate custom gym env to rllib
     - Streamlit integration(enter dynamical system from app)
+    - Replace all prints, with logger

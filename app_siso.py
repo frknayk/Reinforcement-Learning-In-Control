@@ -13,6 +13,7 @@ from gym_control.envs import LinearSISOEnv
 from rlc.agents.ddpg import DDPG, PolicyNetwork, ValueNetwork
 from rlc.logger.logger import create_console_logger
 from rlc.rlcontrol import Trainer
+from rlc.utils.plot import plot_streamlit
 
 logger = create_console_logger("rlcontrolApp")
 
@@ -28,7 +29,7 @@ st.header("Control LTI Systems with Deep Reinforcement Learning")
 algorithm_selected = st.selectbox("Select the algorithm", ("DDPG", "PPO", "DQN"))
 if algorithm_selected != "DDPG":
     logger.error("Only DDPG is available for now")
-
+    st.error("Only DDPG is available for now")
 st.title("Configure Agent,System and Training Parameters")
 tab_tf, tab_agent, tab_env, tab_training = st.tabs(
     ["Transfer Function", "Agent", "Environment", "Training"]
@@ -104,7 +105,7 @@ with tab_training:
         env_config=env_config,
     )
     # st.text(" ==== Training Config ====")
-    max_episode = st.number_input("Max Episodes", step=100, value=200)
+    max_episode = st.number_input("Max Episodes", step=100, value=10)
     plotting_freq = st.number_input("Frequency of Plotting", value=1, step=1)
     printint_freq = st.number_input("Frequency of Console Logging", value=1, step=1)
     enable_log = st.checkbox("enable_log", value=True)
@@ -123,13 +124,12 @@ with tab_training:
     train_config["checkpoints"]["freq"] = 1
     train_config["plot_library"] = "streamlit"
 
-from rlc.utils.plot import plot_streamlit
 
 placeholder = st.empty()
-
+episode_reward_list = []
+is_training_completed = False
 with st.spinner("Wait for it..."):
     if st.button("Train", key="button_train"):
-        # trainer.run(train_config)
         trainer.set_training_config(train_config)
         for eps in tqdm(
             range(trainer.config["max_episode"]), "Agent Learning Progress: "
@@ -189,13 +189,13 @@ with st.spinner("Wait for it..."):
                         width=800,
                         title_text=f"Output vs Reference (Episode:{eps})",
                     )
-                    # st.plotly_chart(fig)
                     st.write(fig)
                 with empty_col:
                     st.markdown("============")
                 with fig_col2:
                     st.markdown("### Metrics of the Episode ###")
                     episode_reward = episode_result_dict["episode_reward"]
+                    episode_reward_list.append(episode_reward)
                     step_total = episode_result_dict["step_total"]
                     episode_policy_loss = episode_result_dict["episode_policy_loss"]
                     episode_value_loss = episode_result_dict["episode_value_loss"]
@@ -211,6 +211,90 @@ with st.spinner("Wait for it..."):
                     )
                     st.metric(
                         label="Integral of Output Signal",
-                        value=f"{total_control_signal}",
+                        value=f"{total_output_signal}",
                     )
+        is_training_completed = True
         st.success("Training is completed!")
+
+# if is_training_completed:
+#     with st.spinner("Analyzing the best policy"):
+#         if st.button("Analyze and Test Best Policy", key="button_analyze"):
+#             episode_result_dict = trainer.test_best_agent()
+#             with placeholder.container():
+#                 fig_col1, empty_col, fig_col2 = st.columns(3)
+#                 with fig_col1:
+#                     st.markdown("### INFERENCE PLOT")
+#                     fig = make_subplots(
+#                         rows=3,
+#                         cols=1,
+#                         shared_xaxes=True,
+#                         x_title="time[s]",
+#                         subplot_titles=(
+#                             "Reference vs Output",
+#                             "Reward",
+#                             "Control Signal",
+#                         ),
+#                     )
+#                     fig.add_trace(
+#                         go.Scatter(
+#                             x=episode_result_dict["sim_time"],
+#                             y=episode_result_dict["reference_list"],
+#                         ),
+#                         row=1,
+#                         col=1,
+#                     )
+#                     fig.add_trace(
+#                         go.Scatter(
+#                             x=episode_result_dict["sim_time"],
+#                             y=episode_result_dict["output_list"],
+#                         ),
+#                         row=1,
+#                         col=1,
+#                     )
+#                     fig.add_trace(
+#                         go.Scatter(
+#                             x=episode_result_dict["sim_time"],
+#                             y=episode_result_dict["reward_list"],
+#                         ),
+#                         row=2,
+#                         col=1,
+#                     )
+#                     fig.add_trace(
+#                         go.Scatter(
+#                             x=episode_result_dict["sim_time"],
+#                             y=episode_result_dict["control_sig_list"],
+#                         ),
+#                         row=3,
+#                         col=1,
+#                     )
+#                     fig.update_layout(
+#                         showlegend=False,
+#                         height=600,
+#                         width=800,
+#                         title_text=f"Output vs Reference (Episode:{eps})",
+#                     )
+#                     st.write(fig)
+#                 with empty_col:
+#                     st.markdown("============")
+#                 with fig_col2:
+#                     st.markdown("### Metrics of the TEST ###")
+#                     episode_reward = episode_result_dict["episode_reward"]
+#                     episode_reward_list.append(episode_reward)
+#                     step_total = episode_result_dict["step_total"]
+#                     episode_policy_loss = episode_result_dict["episode_policy_loss"]
+#                     episode_value_loss = episode_result_dict["episode_value_loss"]
+#                     total_control_signal = episode_result_dict["total_control_signal"]
+#                     total_output_signal = episode_result_dict["total_output_signal"]
+#                     st.metric(label="Reward(Total)", value=f"{episode_reward}")
+#                     st.metric(label="Episode Length", value=f"{step_total}")
+#                     st.metric(label="Policy Loss", value=f"{episode_policy_loss}")
+#                     st.metric(label="Value Loss", value=f"{episode_value_loss}")
+#                     st.metric(
+#                         label="Integral of Control Signal",
+#                         value=f"{total_control_signal}",
+#                     )
+#                     st.metric(
+#                         label="Integral of Output Signal",
+#                         value=f"{total_output_signal}",
+#                     )
+#         st.success("Test of best agent is completed!")
