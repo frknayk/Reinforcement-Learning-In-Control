@@ -76,6 +76,7 @@ class Logger(object):
         self.log_tensorboard_dir = ""
         self.writer = None
         self.experiment_dir = ""
+        self.logger_console = create_console_logger("RLC")
 
     def set(self, algorithm_name):
         project_abs_path, experiment_name = create_log_directories(algorithm_name)
@@ -89,25 +90,31 @@ class Logger(object):
             comment="-" + algorithm_name, log_dir=self.log_tensorboard_dir
         )
 
-    def log_tensorboard_train(self, train_dict: train_dict_default, eps: int):
+    def log_tensorboard_train(
+        self, train_dict: train_dict_default, eps: int, enable=False
+    ):
         for key in train_dict:
             value = train_dict[key]
+            if type(value) != int or type(value) != float:
+                continue
             self.writer.add_scalar(key, value, eps)
         self.writer.close()
 
-    def print_progress(self, train_progress: train_progress_default):
-        str_log = ""
-        str1 = "Trial : [ {0} ] is completed with reference : [ {1} ]\nOUT-1 : [ {2} ]\nEpisode Reward : [ {3} ]".format(
-            train_progress["eps"],
-            train_progress["state_reference"],
-            train_progress["state"],
-            train_progress["reward"],
-        )
-        str_log = str1 + " and lasted {0} steps".format(train_progress["step"])
-        print(str_log)
-        # asd = train_progress["train_info"]
-        # print(f"---- train info ----\n{asd}")
-        print("\n*******************************\n")
+    def print_progress(self, train_progress: train_progress_default, print_freq, step):
+        if step % print_freq == 0:
+            str_log = ""
+            str1 = "Trial : [ {0} ] is completed with reference : [ {1} ]\nOUT-1 : \
+                [ {2} ]\nEpisode Reward : [ {3} ]".format(
+                train_progress["eps"],
+                train_progress["state_reference"],
+                train_progress["state"],
+                train_progress["reward"],
+            )
+            str_log = str1 + " and lasted {0} steps".format(train_progress["step"])
+            print(str_log)
+            # asd = train_progress["train_info"]
+            # print(f"---- train info ----\n{asd}")
+            print("\n*******************************\n")
 
     def close(self):
         self.writer.close()
