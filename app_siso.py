@@ -1,5 +1,4 @@
 import json
-import logging
 
 import numpy as np
 import streamlit as st
@@ -7,41 +6,11 @@ import streamlit as st
 import gym_control
 from gym_control.envs import LinearSISOEnv
 from rlc.agents.ddpg import DDPG, PolicyNetwork, ValueNetwork
+from rlc.logger.logger import create_console_logger
 from rlc.rlcontrol import Trainer
 
+logger = create_console_logger("rlcontrolApp")
 
-class CustomFormatter(logging.Formatter):
-    grey = "\x1b[38;20m"
-    yellow = "\x1b[33;20m"
-    red = "\x1b[31;20m"
-    bold_red = "\x1b[31;1m"
-    reset = "\x1b[0m"
-    format = (
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
-    )
-
-    FORMATS = {
-        logging.DEBUG: grey + format + reset,
-        logging.INFO: grey + format + reset,
-        logging.WARNING: yellow + format + reset,
-        logging.ERROR: red + format + reset,
-        logging.CRITICAL: bold_red + format + reset,
-    }
-
-    def format(self, record):
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
-
-
-# create logger with 'spam_application'
-logger = logging.getLogger("rlcontrolApp")
-logger.setLevel(logging.DEBUG)
-# create console handler with a higher log level
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-ch.setFormatter(CustomFormatter())
-logger.addHandler(ch)
 
 st.header("Control LTI Systems with Deep Reinforcement Learning")
 
@@ -126,9 +95,9 @@ with tab_training:
         env_config=env_config,
     )
     # st.text(" ==== Training Config ====")
-    max_episode = st.number_input("max_episode", step=100, value=200)
-    plotting_freq = st.number_input("plotting_freq", value=1, step=1)
-    printint_freq = st.number_input("printint_freq", value=1, step=1)
+    max_episode = st.number_input("Max Episodes", step=100, value=200)
+    plotting_freq = st.number_input("Frequency of Plotting", value=1, step=1)
+    printint_freq = st.number_input("Frequency of Console Logging", value=1, step=1)
     enable_log = st.checkbox("enable_log", value=True)
     plotting_enable = st.checkbox("plotting_enable", value=True)
     save_checkpoints = st.checkbox("save_checkpoints", value=False)
@@ -141,7 +110,9 @@ with tab_training:
     train_config["plotting"]["enable"] = plotting_enable
     train_config["plotting"]["freq"] = plotting_freq
     train_config["freq_print_console"] = printint_freq
-    train_config["save_checkpoints"] = save_checkpoints
+    train_config["checkpoints"]["enable"] = save_checkpoints
+    train_config["checkpoints"]["freq"] = 1
+    train_config["plot_library"] = "streamlit"
 
 
 with st.spinner("Wait for it..."):

@@ -2,12 +2,12 @@ import os
 import sys
 
 import gymnasium as gym
-import matplotlib.pyplot as plt
 import numpy as np
 from tensorboardX import SummaryWriter
 
 from rlc.agents.base import Agent
 from rlc.logger.logger import Logger
+from rlc.utils.plot import plot_episode_result
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -39,7 +39,7 @@ class Trainer(object):
             "algorithm_name": "",
             "plotting": {"freq": 1, "enable": False},  # Plot per episode
             "freq_print_console": 1,
-            "save_checkpoints": True,
+            "checkpoints": {"enable": True, "freq": 1},
         }
         return default_config_training
 
@@ -60,11 +60,11 @@ class Trainer(object):
 
         # TODO: Move this to logging class when created
         if self.config.get("enable_log") is True:
-            self.logger.set(self.config.get("algorithm_name"))
+            self.logger.set(self.config["algorithm_name"])
 
-        best_reward = -99999
         batch_size = self.agent.get_batch_size()
-
+        best_reward = -np.inf
+        # TODO: Make single step training a function as iteration
         for eps in range(self.config["max_episode"]):
             # Reset agent to random observation
             self.agent.reset()
@@ -100,13 +100,10 @@ class Trainer(object):
                         self.logger.close()
                     sys.exit()
                 total_control_signal = total_control_signal + action
-                if action[0] > 25:
-                    dbg = True
                 next_observation, reward, done, _, info = self.env.step(action)
                 observation = next_observation
-                # output = self.env._get_info()['states'][0]
                 output = next_observation[0]
-
+                # TODO: Make this a function
                 if (
                     np.isnan(action)
                     or np.isnan(observation)
@@ -148,10 +145,14 @@ class Trainer(object):
                     episode_policy_loss += policy_loss.item()
                     episode_value_loss += value_loss.item()
 
-                train_dict = {
+                episode_result_dict = {
                     "Train/reward": episode_reward,
                     "Train/policy_loss": episode_policy_loss,
                     "Train/value_loss": episode_value_loss,
+                    "system_output": output_list,
+                    "system_reference": reference_list,
+                    "controller_output": control_sig_list,
+                    "reward_list": reward_list,
                     "Train/mean_control_signal": np.mean(control_sig_list),
                     "Train/max_control_signal": np.max(control_sig_list),
                     "Train/min_control_signal": np.min(control_sig_list),
@@ -159,59 +160,45 @@ class Trainer(object):
                     "Train/max_output": np.max(output_list),
                     "Train/min_output": np.min(output_list),
                 }
-
                 if done:
-                    if self.config.get("enable_log") is True:
-                        self.logger.log_tensorboard_train(train_dict, eps)
+                    # if self.config.get("enable_log") is True:
+                    #     self.logger.log_tensorboard_train(episode_result_dict, eps)
                     break
-            if step_total == 1:
-                dbg = True
             # Print progress
             train_print_dict = {
                 "eps": eps + 1,
-                # 'state_reference' : self.env.get_info()['state_ref'][0],
                 "state_reference": self.env.env_config["y_ref"],
                 "state": self.env._get_obs()[0],
                 "reward": episode_reward,
                 "step": step_total,
-                "train_info": train_dict,
+                "train_info": episode_result_dict,
             }
             if step % self.config["freq_print_console"] == 0:
                 self.logger.print_progress(train_print_dict)
 
             # TODO: Move this to logging class when created
             # Saving Model
-            if self.config.get("save_checkpoints") is True:
-                self.agent.save(
-                    self.logger.log_weight_dir + "/agent_" + str(eps) + ".pth"
-                )
-
+            if self.config["checkpoints"]["enable"]:
+                if frequency_check(self.config["checkpoints"]["freq"], eps):
+                    self.agent.save(
+                        self.logger.log_weight_dir + "/agent_" + str(eps) + ".pth"
+                    )
             # Save best model seperately
-            is_new_best = False
             if episode_reward > best_reward:
                 best_reward = episode_reward
                 if self.config.get("enable_log") is True:
                     self.agent.save(self.logger.log_weight_dir + "/agent_best.pth")
-                is_new_best = True
+            if self.config["plotting"]["enable"]:
+                if frequency_check(self.config["plotting"]["freq"], eps):
+                    plot_episode_result(
+                        episode_result_dict, plot_library=self.config["plot_library"]
+                    )
 
-            # TODO: Create another class for plotting
-            # Plot whithin some episodes
-            if is_new_best or (
-                training_config["plotting"]["enable"] is True
-                and eps % training_config["plotting"]["freq"] == 0
-                and eps != 0
-            ):
-                fig, axs = plt.subplots(3, sharex=True)
-                axs[0].set_title("Output vs Reference")
-                axs[0].plot(output_list)
-                axs[0].plot(reference_list)
-                axs[1].set_title("Rewards")
-                axs[1].plot(reward_list)
-                axs[2].set_title("Control Signals")
-                axs[2].plot(control_sig_list)
-                plt.show()
 
+def frequency_check(freq, eps):
+    if eps % freq == 0 and eps != 0:
         return True
+    return False
 
     def inference(self, agent_path, inference_config=None):
         self.config = (
@@ -315,11 +302,14 @@ if __name__ == "__main__":
 
     train_config = train_organizer.get_default_training_config()
     train_config["enable_log"] = True
+    train_config["plot_library"] = "streamlit"  # or Matplotlib
     train_config["max_episode"] = 2000
     train_config["algorithm_name"] = "DDPG"
     train_config["max_step"] = int(env_config["t_end"] / env_config["dt"])
-    train_config["plotting"]["enable"] = False
+    train_config["plotting"]["enable"] = True
     train_config["plotting"]["freq"] = 2
     train_config["freq_print_console"] = 1
     train_config["save_checkpoints"] = False
+    train_config["checkpoints"]["enable"] = False
+    train_config["checkpoints"]["freq"] = 1
     train_organizer.train(train_config)
