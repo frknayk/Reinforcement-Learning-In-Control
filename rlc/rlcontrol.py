@@ -67,9 +67,9 @@ class Trainer(object):
         }
         return default_config_inference
 
-    def set_training_config(self, train_config: dict):
-        self.config = train_config
-        self.logger.set(train_config["algorithm_name"])
+    def set_trainer_config(self, trainer_config: dict):
+        self.config = trainer_config
+        self.logger.set(trainer_config["algorithm_name"])
 
     def train_one_episode(self, test_mode: bool = False):
         """Run simulation for one episode and train by default.
@@ -130,15 +130,13 @@ class Trainer(object):
         episode_result_dict["sim_time"] = list(sim_results[:, 0])
         return episode_result_dict
 
-    def train_step(self):
-        yield self.train_one_episode()
-
-    def test_best_agent(self):
-        self.load_best_agent()
+    def test_agent(self):
+        """Test agent for one episode. This mode for inference."""
+        self.load_checkpoint()
         return self.train_one_episode(test_mode=True)
 
     def run(self, training_config: dict):
-        self.set_training_config(training_config)
+        self.set_trainer_config(training_config)
         # TODO: Move this to logging class when created
         for eps in tqdm(range(self.config["max_episode"]), "Agent Learning Progress: "):
             episode_result_dict = self.train_one_episode()
@@ -217,8 +215,17 @@ class Trainer(object):
             episode_result_dict["episode_value_loss"] = agent_loss_dict["value_loss"]
         return episode_result_dict
 
-    def load_best_agent(self):
-        self.agent.load(self.logger.log_weight_dir + "/agent_best.pth")
+    def load_checkpoint(self, checkpoint_dir=""):
+        """Load agent
+
+        Parameters
+        ----------
+        path : str, optional
+            _description_, by default ""
+        """
+        if checkpoint_dir == "":
+            checkpoint_dir = self.logger.log_weight_dir + "/agent_best.pth"
+        self.agent.load(checkpoint_dir)
 
 
 def frequency_check(freq, eps):

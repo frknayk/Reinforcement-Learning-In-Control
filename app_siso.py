@@ -19,11 +19,36 @@ logger = create_console_logger("rlcontrolApp")
 
 
 st.set_page_config(
-    page_title="Real-Time Data Science Dashboard",
+    page_title="Control LTI Systems with Deep Reinforcement Learning",
     page_icon="✅",
     layout="wide",
 )
-st.header("Control LTI Systems with Deep Reinforcement Learning")
+# st.header("Control LTI Systems with Deep Reinforcement Learning")
+
+
+def main_page():
+    st.markdown("# Main page 🎈")
+    st.sidebar.markdown("# Main page 🎈")
+
+
+def page_training():
+    st.markdown("# Page 2 ❄️")
+    st.sidebar.markdown("# Page 2 ❄️")
+
+
+def page_testing():
+    st.markdown("# Page 3 🎉")
+    st.sidebar.markdown("# Page 3 🎉")
+
+
+page_names_to_funcs = {
+    "Main Page": main_page,
+    "Train": page_training,
+    "Inference": page_testing,
+}
+
+selected_page = st.sidebar.selectbox("Select a page", page_names_to_funcs.keys())
+page_names_to_funcs[selected_page]()
 
 # Algorithms
 algorithm_selected = st.selectbox("Select the algorithm", ("DDPG", "PPO", "DQN"))
@@ -219,7 +244,7 @@ with st.spinner("Wait for it..."):
 # if is_training_completed:
 #     with st.spinner("Analyzing the best policy"):
 #         if st.button("Analyze and Test Best Policy", key="button_analyze"):
-#             episode_result_dict = trainer.test_best_agent()
+#             episode_result_dict = trainer.test_agent()
 #             with placeholder.container():
 #                 fig_col1, empty_col, fig_col2 = st.columns(3)
 #                 with fig_col1:

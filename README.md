@@ -26,8 +26,9 @@ streamlit run app.py
     - Add Experiment name to Introduction page
     - Add Training and Inference Pages. And Inference page must be able to load
     latest training's best agent in selected folder to test agent.
-    - Train environemnt with rllib
+    - Do not create folder unless checkpoint saving is enabled.
     - Integrate integral error to rlcontrol
+    - Train environemnt with rllib
     - Dockerize
 
 ## DONE
