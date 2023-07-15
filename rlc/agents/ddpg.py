@@ -101,6 +101,7 @@ class DDPG(Agent):
         super().__init__(observation_space, action_space)
         self.algorithm_name = "DDPG"
         self.action_dim = action_space.shape[0]
+        self.config = agent_config
         hidden_dim = agent_config["hidden_dim"]
         self.batch_size = agent_config["batch_size"]
         self.value_net = agent_config["value_net"](

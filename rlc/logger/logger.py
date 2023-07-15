@@ -1,3 +1,4 @@
+import json
 import logging
 import pathlib
 
@@ -6,7 +7,12 @@ import pandas as pd
 import streamlit as st
 from tensorboardX import SummaryWriter
 
-from rlc.utils.utils_path import create_dir, create_log_directories
+from rlc.utils.utils_path import (
+    create_dir,
+    create_log_directories,
+    get_algorithm_name_by_time,
+    get_project_path,
+)
 
 np.random.seed(59)
 
@@ -69,30 +75,57 @@ train_progress_default = {
 
 
 class Logger(object):
-    def __init__(self, algorithm_name="DDPG"):
-        # Place to save traiend weights
-        self.log_weight_dir = ""
-        # Place to save tensorboard outputs
-        self.log_tensorboard_dir = ""
-        self.writer = None
+    def __init__(self, algorithm_name="DDPG", enable_log_tensorboard=False):
+        self.algorithm_name = algorithm_name
+        self.log_weight_dir = ""  # Directory of experiment checkpoints
+        self.log_tensorboard_dir = ""  # Directory of tensorboard runs
         self.experiment_dir = ""
-        self.logger_console = create_console_logger("RLC")
-
-    def set(self, algorithm_name):
-        project_abs_path, experiment_name = create_log_directories(algorithm_name)
+        self.logger_console = create_console_logger("logger_rlc_logger")
+        self.project_abs_path = get_project_path()
+        self.experiment_name = get_algorithm_name_by_time(algorithm_name)
         self.experiment_dir = str(
-            pathlib.Path(project_abs_path, "Runs", experiment_name)
+            pathlib.Path(self.project_abs_path, "Runs", self.experiment_name)
         )
+        self.writer = None  # Tensorboard writer object
+
+    def set_checkpoints_dir(self, algorithm_name):
+        self.algorithm_name = algorithm_name
+        create_log_directories(algorithm_name)
         self.log_weight_dir = str(pathlib.Path(self.experiment_dir, "checkpoints"))
+
+    def set_tensorboard_dir(self, algorithm_name):
+        self.algorithm_name = algorithm_name
         self.log_tensorboard_dir = str(pathlib.Path(self.experiment_dir, "runs"))
         # TODO: Add hyperparameters to tensorboard
         self.writer = SummaryWriter(
-            comment="-" + algorithm_name, log_dir=self.log_tensorboard_dir
+            comment="-" + self.algorithm_name, log_dir=self.log_tensorboard_dir
         )
 
-    def log_tensorboard_train(
-        self, train_dict: train_dict_default, eps: int, enable=False
-    ):
+    def save_experiment_config(self, env_config, agent_config, train_config):
+        experiment_config = {
+            "env_config": env_config,
+            "agent_config": agent_config,
+            "train_config": train_config,
+        }
+        for cfg in experiment_config:
+            dict_config = experiment_config[cfg]
+            for key in dict_config:
+                val = dict_config[key]
+                if type(val) in valid_types == False:
+                    self.logger_console.warn(f"Could not log {val} for key:{key}")
+                    continue
+                if type(experiment_config[cfg][key]) == np.ndarray:
+                    experiment_config[cfg][key] = list(experiment_config[cfg][key])
+
+        experiment_config_dir = str(
+            pathlib.Path(self.experiment_dir, "experiment_config.json")
+        )
+        print("experiment_config:", experiment_config)
+        print("experiment_config_dir:", experiment_config_dir)
+        with open(experiment_config_dir, "w") as outfile:
+            json.dump(experiment_config, outfile)
+
+    def log_tensorboard_train(self, train_dict: train_dict_default, eps: int):
         for key in train_dict:
             value = train_dict[key]
             if type(value) != int or type(value) != float:
@@ -111,10 +144,8 @@ class Logger(object):
                 train_progress["reward"],
             )
             str_log = str1 + " and lasted {0} steps".format(train_progress["step"])
-            print(str_log)
-            # asd = train_progress["train_info"]
-            # print(f"---- train info ----\n{asd}")
-            print("\n*******************************\n")
+            str_log += "\n*******************************\n"
+            self.logger_console.info(str_log)
 
     def close(self):
         self.writer.close()

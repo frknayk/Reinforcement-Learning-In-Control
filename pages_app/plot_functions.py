@@ -3,6 +3,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
+# from rlc.utils.plot import plot_streamlit
+
 
 def plot_training_episode(episode_result_dict, placeholder, eps):
     with placeholder.container():
@@ -82,7 +84,7 @@ def plot_training_episode(episode_result_dict, placeholder, eps):
             )
 
 
-def plot_test_results(episode_result_dict, placeholder):
+def plot_test_results(episode_result_dict, placeholder, eps):
     with placeholder.container():
         fig_col1, empty_col, fig_col2 = st.columns(3)
         with fig_col1:

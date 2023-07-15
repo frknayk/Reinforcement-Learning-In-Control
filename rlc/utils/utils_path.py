@@ -14,7 +14,6 @@ def create_log_directories(algo_name):
         str(pathlib.Path(project_abs_path, "Runs", experiment_name, "checkpoints"))
     )
     create_dir(str(pathlib.Path(project_abs_path, "Runs", experiment_name, "runs")))
-    return project_abs_path, experiment_name
 
 
 def get_project_path():

@@ -133,12 +133,12 @@ with tab_training:
     max_episode = st.number_input("Max Episodes", step=100, value=10)
     plotting_freq = st.number_input("Frequency of Plotting", value=1, step=1)
     printint_freq = st.number_input("Frequency of Console Logging", value=1, step=1)
-    enable_log = st.checkbox("enable_log", value=True)
+    enable_log_tensorboard = st.checkbox("enable_log_tensorboard", value=True)
     # plotting_enable = st.checkbox("plotting_enable", value=True)
     save_checkpoints = st.checkbox("save_checkpoints", value=False)
 
     train_config = trainer.get_default_training_config()
-    train_config["enable_log"] = enable_log
+    train_config["enable_log_tensorboard"] = enable_log_tensorboard
     train_config["max_episode"] = max_episode
     train_config["algorithm_name"] = algorithm_selected
     train_config["max_step"] = int(env_config["t_end"] / env_config["dt"])

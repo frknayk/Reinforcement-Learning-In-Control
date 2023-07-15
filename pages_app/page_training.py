@@ -19,11 +19,12 @@ from rlc.rlcontrol import Trainer
 logger = create_console_logger("logger_training")
 
 
-def train_agent(trainer: Trainer):
+def train_agent(trainer: Trainer, trainer_config):
     placeholder = st.empty()
     episode_reward_list = []
     with st.spinner("Wait Until Training Finished"):
         if st.button("Train", key="button_train"):
+            trainer.set_trainer_config(trainer_config)
             max_eps = trainer.config["max_episode"]
             st_pbar = st.progress(0)
             for eps in tqdm(range(max_eps), "Agent Learning Progress: "):
@@ -52,16 +53,15 @@ def page_training():
     assert agent_config is not None
     env_config = create_tab_env(tab_env, numerator, denum)
     assert env_config is not None
-    train_config = create_tab_trainer(tab_training, env_config, algorithm_selected)
+    trainer_config = create_tab_trainer(tab_training, env_config, algorithm_selected)
     trainer = Trainer(
         env=LinearSISOEnv,
         agent_class=DDPG,
         agent_config=agent_config,
         env_config=env_config,
     )
-    assert train_config is not None
-    trainer.set_trainer_config(train_config)
-    train_agent(trainer)
+    assert trainer_config is not None
+    train_agent(trainer, trainer_config)
     agent_path = trainer.logger.log_weight_dir
     st.info(
         f"Trained agent can be found at path \
