@@ -1,34 +1,18 @@
 import os
 import sys
-from typing import List
 
 import gymnasium as gym
 import numpy as np
-from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 from rlc.agents.base import Agent
+from rlc.configs import episode_result_dict_default
 from rlc.logger.logger import Logger
 from rlc.utils.plot import plot_matplotlib
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 np.random.seed(59)
-
-# Default 1-episode output structure
-episode_result_dict_default = {
-    "episode_reward": float,
-    "episode_policy_loss": float,
-    "episode_value_loss": float,
-    "total_control_signal": float,
-    "total_output_signal": float,
-    "step_total": int,
-    "output_list": List[float],
-    "reward_list": List[float],
-    "reference_list": List[float],
-    "control_sig_list": List[float],
-    "sim_time": List[float],
-}
 
 
 class Trainer(object):
@@ -81,9 +65,9 @@ class Trainer(object):
         if trainer_config["checkpoints"]["enable"]:
             self.logger.set_checkpoints_dir(trainer_config["algorithm_name"])
             self.logger.save_experiment_config(
-                env_config=self.env.env_config,
-                agent_config=self.agent.config,
-                train_config=trainer_config,
+                env_config=self.env.env_config.copy(),
+                agent_config=self.agent.config.copy(),
+                train_config=trainer_config.copy(),
             )
             if trainer_config["enable_log_tensorboard"]:
                 self.logger.set_tensorboard_dir(trainer_config["algorithm_name"])
@@ -149,7 +133,7 @@ class Trainer(object):
 
     def test_agent(self):
         """Test agent for one episode. This mode for inference."""
-        self.load_checkpoint()
+        self.load_checkpoint_dir()
         return self.train_one_episode(test_mode=True)
 
     def run(self, trainer_config: dict):
@@ -233,8 +217,8 @@ class Trainer(object):
             episode_result_dict["episode_value_loss"] = agent_loss_dict["value_loss"]
         return episode_result_dict
 
-    def load_checkpoint(self, checkpoint_dir=""):
-        """Load agent
+    def load_checkpoint_dir(self, checkpoint_dir=""):
+        """Load agent by given directory
 
         Parameters
         ----------
@@ -245,6 +229,16 @@ class Trainer(object):
             checkpoint_dir = self.logger.log_weight_dir + "/agent_best.pth"
         self.agent.load(checkpoint_dir)
 
+    def load_checkpoint_binary(self, checkpoint_binary):
+        """Load agent by given directory
+
+        Parameters
+        ----------
+        path : str, optional
+            _description_, by default ""
+        """
+        self.agent.policy_net.load_state_dict(checkpoint_binary)
+
 
 def frequency_check(freq, eps):
     if eps % freq == 0 and eps != 0:
@@ -254,28 +248,26 @@ def frequency_check(freq, eps):
 
 if __name__ == "__main__":
     from gym_control.envs import LinearSISOEnv
-    from rlc.agents.ddpg import DDPG, PolicyNetwork, ValueNetwork
+    from rlc.agents.ddpg import DDPG
+    from rlc.configs import agent_config_default, env_config_default
 
-    agent_config = {
-        "batch_size": 256,
-        "hidden_dim": 32,
-        "policy_net": PolicyNetwork,
-        "value_net": ValueNetwork,
-    }
+    agent_config = agent_config_default.copy()
+    agent_config["batch_size"] = 256
+    agent_config["hidden_dim"] = 32
+    agent_config["algorithm_type"] = "DDPG"
 
-    env_config = {
-        "action_space": [0, 50],
-        "obs_space": [0, 10],
-        "num": [1],
-        "den": [1, 10, 20],
-        "x_0": [0],
-        "dt": 1,
-        "y_0": 0,
-        "t_0": 0,
-        "t_end": 50,
-        "y_ref": 1,
-        "steady_state_indicator": 30,
-    }
+    env_config = env_config_default.copy()
+    env_config["action_space"] = [0, 50]
+    env_config["obs_space"] = [0, 10]
+    env_config["num"] = [1]
+    env_config["den"] = [1, 10, 20]
+    env_config["x_0"] = [0]
+    env_config["dt"] = 1
+    env_config["y_0"] = 0
+    env_config["t_0"] = 0
+    env_config["t_end"] = 50
+    env_config["y_ref"] = 1
+    env_config["steady_state_indicator"] = 30
 
     train_organizer = Trainer(
         env=LinearSISOEnv,

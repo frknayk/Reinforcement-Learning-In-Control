@@ -22,13 +22,8 @@ streamlit run app.py
 <img width=640px height=480px src="images\result.png" alt="Project logo">
 
 ## TODO
+    - Add RL algorithm params to training page.
     - Track experiments from db (postgresql)
-        2 table:
-            Main table:[
-                'experiment_name','exp_date','total_eps',
-                'performance_criterias',
-                'agent_config','env_config','training_config']
-            Experiment table:['eps':reward,consig,output,states]
     - Integrate integral error to rlcontrol
     - Train environemnt with rllib
     - Add class diagram of project

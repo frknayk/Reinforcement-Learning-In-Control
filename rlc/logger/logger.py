@@ -1,6 +1,7 @@
 import json
 import logging
 import pathlib
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ from tensorboardX import SummaryWriter
 from rlc.utils.utils_path import (
     create_dir,
     create_log_directories,
+    create_tensorboard_log_dir,
     get_algorithm_name_by_time,
     get_project_path,
 )
@@ -75,7 +77,7 @@ train_progress_default = {
 
 
 class Logger(object):
-    def __init__(self, algorithm_name="DDPG", enable_log_tensorboard=False):
+    def __init__(self, algorithm_name="DDPG"):
         self.algorithm_name = algorithm_name
         self.log_weight_dir = ""  # Directory of experiment checkpoints
         self.log_tensorboard_dir = ""  # Directory of tensorboard runs
@@ -95,6 +97,7 @@ class Logger(object):
 
     def set_tensorboard_dir(self, algorithm_name):
         self.algorithm_name = algorithm_name
+        create_tensorboard_log_dir(algorithm_name)
         self.log_tensorboard_dir = str(pathlib.Path(self.experiment_dir, "runs"))
         # TODO: Add hyperparameters to tensorboard
         self.writer = SummaryWriter(
@@ -104,26 +107,17 @@ class Logger(object):
     def save_experiment_config(self, env_config, agent_config, train_config):
         experiment_config = {
             "env_config": env_config,
-            "agent_config": agent_config,
             "train_config": train_config,
+            "agent_config": agent_config,
+            "path_best_agent": str(
+                pathlib.Path(self.experiment_dir, "checkpoints", "agent_best.pth")
+            ),
         }
-        for cfg in experiment_config:
-            dict_config = experiment_config[cfg]
-            for key in dict_config:
-                val = dict_config[key]
-                if type(val) in valid_types == False:
-                    self.logger_console.warn(f"Could not log {val} for key:{key}")
-                    continue
-                if type(experiment_config[cfg][key]) == np.ndarray:
-                    experiment_config[cfg][key] = list(experiment_config[cfg][key])
-
         experiment_config_dir = str(
-            pathlib.Path(self.experiment_dir, "experiment_config.json")
+            pathlib.Path(self.experiment_dir, "experiment_config.pickle")
         )
-        print("experiment_config:", experiment_config)
-        print("experiment_config_dir:", experiment_config_dir)
-        with open(experiment_config_dir, "w") as outfile:
-            json.dump(experiment_config, outfile)
+        with open(experiment_config_dir, "wb") as handle:
+            pickle.dump(experiment_config, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def log_tensorboard_train(self, train_dict: train_dict_default, eps: int):
         for key in train_dict:

@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 
 
-def create_log_directories(algo_name):
+def create_log_directories(algo_name: str):
     project_abs_path = get_project_path()
     experiment_name = get_algorithm_name_by_time(algo_name)
     create_dir(str(pathlib.Path(project_abs_path, "Runs")))
@@ -13,6 +13,12 @@ def create_log_directories(algo_name):
     create_dir(
         str(pathlib.Path(project_abs_path, "Runs", experiment_name, "checkpoints"))
     )
+    create_dir(str(pathlib.Path(project_abs_path, "Runs", experiment_name, "runs")))
+
+
+def create_tensorboard_log_dir(algo_name: str):
+    project_abs_path = get_project_path()
+    experiment_name = get_algorithm_name_by_time(algo_name)
     create_dir(str(pathlib.Path(project_abs_path, "Runs", experiment_name, "runs")))
 
 

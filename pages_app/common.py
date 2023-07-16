@@ -3,8 +3,6 @@ import json
 import numpy as np
 import streamlit as st
 
-import gym_control
-from gym_control.envs import LinearSISOEnv
 from rlc.agents.ddpg import PolicyNetwork, ValueNetwork
 from rlc.logger.logger import create_console_logger
 from rlc.rlcontrol import Trainer
@@ -12,11 +10,15 @@ from rlc.rlcontrol import Trainer
 logger = create_console_logger("logger_inference")
 
 
-def select_algorithm():
-    algorithm_selected = st.selectbox("Select the algorithm", ("DDPG", "PPO", "DQN"))
-    if algorithm_selected != "DDPG":
-        logger.error("Only DDPG is available for now")
-        st.error("Only DDPG is available for now")
+def create_tab_algorithm(tab_algorithm):
+    algorithm_selected = ""
+    with tab_algorithm:
+        algorithm_selected = st.selectbox(
+            "Select the algorithm", ("DDPG", "PPO", "DQN")
+        )
+        if algorithm_selected != "DDPG":
+            logger.error("Only DDPG is available for now")
+            st.error("Only DDPG is available for now")
     return algorithm_selected
 
 
@@ -54,8 +56,7 @@ def create_tab_agent(tab_agent):
         agent_config = {
             "batch_size": batch_size,
             "hidden_dim": hidden_dim,
-            "policy_net": PolicyNetwork,
-            "value_net": ValueNetwork,
+            "algorithm_type": None,
         }
     return agent_config
 
@@ -103,8 +104,8 @@ def create_tab_trainer(tab_training, env_config, algorithm_selected):
         max_episode = st.number_input("Max Episodes", step=100, value=10)
         plotting_freq = st.number_input("Frequency of Plotting", value=1, step=1)
         printint_freq = st.number_input("Frequency of Console Logging", value=1, step=1)
-        enable_log_tensorboard = st.checkbox("enable_log_tensorboard", value=False)
-        save_checkpoints = st.checkbox("save_checkpoints", value=True)
+        enable_log_tensorboard = st.checkbox("Save Tensorboard Runs", value=False)
+        save_checkpoints = st.checkbox("Save Checkpoints", value=True)
         train_config = Trainer.get_default_training_config()
         train_config["enable_log_tensorboard"] = enable_log_tensorboard
         train_config["max_episode"] = max_episode

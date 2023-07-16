@@ -7,6 +7,7 @@ import torch.optim as optim
 from numpy.core.defchararray import not_equal
 
 from rlc.agents.base import Agent
+from rlc.configs import agent_config_default
 
 # Using Cuda
 use_cuda = torch.cuda.is_available()
@@ -86,17 +87,13 @@ class ValueNetwork(nn.Module):
         return x
 
 
-config_default = {
-    "batch_size": 64,
-    "hidden_dim": 32,
-    "policy_net": PolicyNetwork,
-    "value_net": ValueNetwork,
-}
-
-
 class DDPG(Agent):
     def __init__(
-        self, action_space, observation_space, agent_config: config_default, params=None
+        self,
+        action_space,
+        observation_space,
+        agent_config: agent_config_default,
+        params=None,
     ):
         super().__init__(observation_space, action_space)
         self.algorithm_name = "DDPG"
@@ -104,16 +101,16 @@ class DDPG(Agent):
         self.config = agent_config
         hidden_dim = agent_config["hidden_dim"]
         self.batch_size = agent_config["batch_size"]
-        self.value_net = agent_config["value_net"](
+        self.value_net = ValueNetwork(observation_space, action_space, hidden_dim).to(
+            device
+        )
+        self.policy_net = PolicyNetwork(observation_space, action_space, hidden_dim).to(
+            device
+        )
+        self.target_value_net = ValueNetwork(
             observation_space, action_space, hidden_dim
         ).to(device)
-        self.policy_net = agent_config["policy_net"](
-            observation_space, action_space, hidden_dim
-        ).to(device)
-        self.target_value_net = agent_config["value_net"](
-            observation_space, action_space, hidden_dim
-        ).to(device)
-        self.target_policy_net = agent_config["policy_net"](
+        self.target_policy_net = PolicyNetwork(
             observation_space, action_space, hidden_dim
         ).to(device)
         # Ornstein-Uhlenbeck Noise

@@ -1,15 +1,13 @@
-import numpy as np
 import streamlit as st
 from tqdm import tqdm
 
-# import gym_control
 from gym_control.envs import LinearSISOEnv
 from pages_app.common import (
     create_tab_agent,
+    create_tab_algorithm,
     create_tab_env,
     create_tab_tf,
     create_tab_trainer,
-    select_algorithm,
 )
 from pages_app.plot_functions import plot_training_episode
 from rlc.agents.ddpg import DDPG
@@ -38,14 +36,15 @@ def train_agent(trainer: Trainer, trainer_config):
 
 
 def page_training():
-    st.header("Control LTI Systems with Deep Reinforcement Learning")
+    st.title("Control LTI Systems with Deep Reinforcement Learning")
+    st.header("Configure Agent,System and Training Parameters")
     st.sidebar.markdown("# Training Page 🎈")
     st.sidebar.text("Configure environment,agent\n and training parameters.")
-    algorithm_selected = select_algorithm()
-    st.title("Configure Agent,System and Training Parameters")
-    tab_tf, tab_agent, tab_env, tab_training = st.tabs(
-        ["Transfer Function", "Agent", "Environment", "Training"]
+
+    tab_algorithm, tab_tf, tab_agent, tab_env, tab_training = st.tabs(
+        ["Algorithm", "Transfer Function", "Agent", "Environment", "Training"]
     )
+    algorithm_selected = create_tab_algorithm(tab_algorithm)
     numerator, denum = create_tab_tf(tab_tf)
     assert numerator is not None
     assert denum is not None
