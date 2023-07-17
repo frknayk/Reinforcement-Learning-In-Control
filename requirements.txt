@@ -5,3 +5,9 @@ rllib
 control
 gymnasium
 tensorboardx
+tqdm
+numpy
+matplotlib
+plotly
+pandas
+pickle
