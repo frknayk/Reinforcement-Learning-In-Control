@@ -10,4 +10,4 @@ numpy
 matplotlib
 plotly
 pandas
-pickle
+pickle5
