@@ -7,7 +7,6 @@ __pycache__/
 *.so
 .vscode
 *.vscode
-Agents/
 runs/
 Logs/
 
@@ -30,6 +29,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+ray_results/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

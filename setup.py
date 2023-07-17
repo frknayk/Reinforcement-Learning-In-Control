@@ -1,10 +1,12 @@
 import setuptools
 from setuptools import setup
 
-setup(name='rlcontrol',
-      version='0.5',
-      description='Learn to control dynamical systems with RL algorithms',
-      author='frknayk,senceryazici',
-      author_email='furkanayik@outlook.com,senceryazici@gmail.com',
-      packages=setuptools.find_packages(),
-      python_requires='>=3.0')
+setup(
+    name="gym_control",
+    version="0.0.1",
+    install_requires=["ray", "gym", "rllib"],
+    description="Control systems with Reinforcement Learning and Dynamic Programming :rock:",
+    author="frknayk",
+    author_email="furkanayik@outlook.com",
+    packages=setuptools.find_packages(),
+)

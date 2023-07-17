@@ -6,39 +6,38 @@ Apply state-of-the-art RL algorithms to control linear/nonlinear dynamical syste
 
 
 ## Installing
-Install the package locally by running : ```pip3 install -e .```
+<!-- Create conda environment -->
+<!-- conda env export > environment.yml --no-builds -->
+'conda env create --name rlcontrol --file=environment.yml'
 
+Install gym_control environment: `pip install -e .`
 ## Training
-- Check ```Examples/ex_training.py``` script. There is only few things you need to train your own dynamical system,
-    1. Implement your own dynamical system from rlcontrol/systems/base class
-    2. Use the RL algorithm from rlcontrol/agents/algorithm_name
-    3. Gave them as parameter to the Organizer class which would handle all training process and log training events.
+- Look for raylib
+* Track experiments via: tensorboard --logdir=~/ray_results
 
-- You can always change training parameters by the getting them with```get_default_training_config()``` function
-    and giving config as parameter to ```train()``` function.
+## Run App
+streamlit run app.py
 
-### Watch Training
-    1. cd Logs/ 
-    2. Run the terminal and type ```tensorboard --logdir=runs```
-    3. Open the link in the terminal in any browser to watch (Chrome is recommended)
-
-## Inference 
-Check ```Examples/ex_inference.py``` script. There is only few things you need to test your own Rl controller,
-    1. Specify the dynamical system you trained your RL agent with to Organizer class and specify rl algorithm as before.
-    2. Give absolute path of the trained agent.
-    3. Run organizer.run() and see plots. 
-
-## Quick Look
-When an agent is trained to control system in steady-state the inference result would be something like below
 
 <img width=640px height=480px src="images\result.png" alt="Project logo">
 
 ## TODO
-    - Implement various dynamical systems examples.
-    - Specify range for dynamical system parameters while training
-    - List all TODOs here
-    - Fix tensorboard issue
-    - Create logger class
-    - Create plotter class
-    - Seperate training/inference organizers.
-    - Integrate with rllib/ray
+    - Fix seeds
+    - Train environemnt with rllib
+    - Add class diagram of project
+    - Dockerize
+    - Track experiments from db (postgresql)
+
+## DONE
+    - Integrate integral error to rlcontrol
+    - Add RL algorithm params to training page.
+    - Add Training and Inference Pages. And Inference page must be able to load
+    latest training's best agent in selected folder to test agent.
+    - Do not create folder unless checkpoint saving is enabled.
+    - Add Experiment name to Introduction page
+    - Make app multiple pages
+    - Make Trainer runnable by episode by episode, and plot graphs to streamlit.
+    - Create custom gym env for simulating dynamical system responses
+    - Integrate custom gym env to rllib
+    - Streamlit integration(enter dynamical system from app)
+    - Replace all prints, with logger
