@@ -8,6 +8,7 @@ from rlc.logger.logger import create_console_logger
 from rlc.rlcontrol import Trainer
 
 logger = create_console_logger("logger_inference")
+import control as ct
 
 
 def create_tab_algorithm(tab_algorithm):
@@ -26,6 +27,23 @@ def convert_np_array(text_list):
     return np.float32(json.loads(text_list))
 
 
+def transfer_function_to_markdown(numerator, denominator):
+    def format_coefficients(coefficients):
+        # Format a list of coefficients as a string in a readable format
+        terms = [
+            f"{coeff} s^{i}" if i > 0 else str(coeff)
+            for i, coeff in enumerate(coefficients)
+        ]
+        return " + ".join(terms)
+
+    numerator_str = format_coefficients(numerator)
+    denominator_str = format_coefficients(denominator)
+    markdown = (
+        ":blue[$$ G(s) = {" + numerator_str + " \over" + denominator_str + " } $$]"
+    )
+    return markdown
+
+
 def create_tab_tf(tab_tf):
     """Create transfer function tab"""
     numerator = None
@@ -39,6 +57,13 @@ def create_tab_tf(tab_tf):
             "Denumerator of transfer function (Enter as list of numbers: [1,2,3]) ",
             value="[1, 10, 20]",
         )
+
+        num_arr = json.loads(numerator)
+        denum_arr = json.loads(denum)
+        markdown_tf = transfer_function_to_markdown(num_arr, denum_arr)
+        st.divider()
+        st.markdown(markdown_tf)
+        st.divider()
     return numerator, denum
 
 

@@ -43,7 +43,7 @@ def load_agent_ckpt():
 
 
 def page_testing():
-    st.title("🕶️🕶️🕶️ Test Agent 🕶️🕶️🕶️")
+    st.title("Test Agent 🕶️🕶️🕶️")
     st.sidebar.markdown("Run Inference On Trained Agent🎉")
     st.sidebar.text("Select environment and load agent")
     st.title("Configure Agent,System and Training Parameters")
