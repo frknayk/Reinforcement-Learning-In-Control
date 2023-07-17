@@ -13,13 +13,14 @@
 <h2 id="about-the-project"> :pencil: About The Project</h2>
 
 <p align="justify">
-    - The project aims to control linear/nonlinear dynamical systems
+    The project aims to control linear/nonlinear dynamical systems
     in model-free and model-based setting
     with SOTA deep reinforcement learning algorithms
 </p>
 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
-<h2 id="liveApp" href="https://rlcontrol.streamlit.app"> Try the App Live! </h2>
+<h2 id="liveApp" href=> <a href="https://rlcontrol.streamlit.app"> Try App Live with Streamlit! </a> </h2>
+
 
 <p align="center">
   <img src="files/training_page.jpg" alt="Training Page" width="80%" height="80%">
