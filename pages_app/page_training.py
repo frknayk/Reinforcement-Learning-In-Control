@@ -59,7 +59,10 @@ def page_training():
     )
     trainer_config = create_tab_trainer(tab_training, env_config, algorithm_selected)
     assert trainer_config is not None
-    train_agent(trainer, trainer_config)
+    try:
+        train_agent(trainer, trainer_config)
+    except Exception as e:
+        print(e)
     agent_path = trainer.logger.log_weight_dir
     st.info(
         f"Trained agent can be found at path \

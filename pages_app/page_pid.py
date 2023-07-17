@@ -9,16 +9,12 @@ from rlc.control.pid import PIDController
 
 
 def simulate_system(env: LinearSISOEnv, pid: PIDController):
-    # c_p = env.create_pid(kp, ki, kd)
-    # env.sys = ct.series(env.sys, c_p)
-    # env.closed_loop_step_response()
-    obs, _ = env.reset()
+    env.reset()
+    pid.reset()
     max_step = int(env.env_config["t_end"] / env.env_config["dt"])
     for _ in range(max_step):
-        output = pid.compute(obs[0])
-        obs, _, done, _, _ = env.step(output)
-        # if done:
-        #     break
+        output = pid.compute(env.y)
+        env.step(pid.compute(env.y))
     return np.array(env.sim_results)
 
 
@@ -38,6 +34,8 @@ def page_pid():
     kd = st.slider("Derivative(D)", 0.0, 1000.0, value=5.0)
     env = LinearSISOEnv(env_config)
     pid = PIDController(kp, ki, kd, setpoint=env.y_ref)
+    env.reset()
+    pid.reset()
     with st.spinner("Simulation in Progress.."):
         if st.button("Control", key="button_pid"):
             sim_results = simulate_system(env, pid)

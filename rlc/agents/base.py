@@ -8,20 +8,14 @@ class Agent(object):
         self.integral_error = False
         self.best_reward = -np.inf
 
-    def apply(self, state_dict: dict, step: int):
+    def apply(self, observation: np.ndarray, step: int):
         """Calculate control signal by two options: output/state feedback
 
         Parameters
         ----------
-        state_dict : dict
-            {
-                'state':np.ndarray,
-                'state_reference':np.ndarray
-            }
+        observation : np.ndarray,
         step : int
             Iteration of ongoing epoch
-        is_output_feedback : bool, optional
-            _description_, by default True
 
         Returns
         -------

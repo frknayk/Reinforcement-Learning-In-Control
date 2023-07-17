@@ -130,12 +130,13 @@ class Logger(object):
     def print_progress(self, train_progress: train_progress_default, print_freq, step):
         if step % print_freq == 0:
             str_log = ""
-            str1 = "Trial : [ {0} ] is completed with reference : [ {1} ]\nOUT-1 : \
-                [ {2} ]\nEpisode Reward : [ {3} ]".format(
+            str1 = "Episode : [ {0} ] =>>> Ref/Out:[ {1} ] / OUT-1 : [ {2} ] \
+                Total Reward : [ {3} ] -- Mean Reward: [ {4} ]".format(
                 train_progress["eps"],
                 train_progress["state_reference"],
                 train_progress["state"],
                 train_progress["reward"],
+                train_progress["reward_mean"],
             )
             str_log = str1 + " and lasted {0} steps".format(train_progress["step"])
             str_log += "\n*******************************\n"

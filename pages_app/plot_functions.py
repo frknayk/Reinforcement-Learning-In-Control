@@ -71,7 +71,9 @@ def plot_training_episode(episode_result_dict, placeholder, eps):
             episode_value_loss = episode_result_dict["episode_value_loss"]
             total_control_signal = episode_result_dict["total_control_signal"]
             total_output_signal = episode_result_dict["total_output_signal"]
+            mean_rew = np.mean(episode_result_dict["reward_list"])
             st.metric(label="Reward(Total)", value=f"{episode_reward}")
+            st.metric(label="Reward(Mean)", value=f"{mean_rew}")
             st.metric(label="Episode Length", value=f"{step_total}")
             st.metric(label="Policy Loss", value=f"{episode_policy_loss}")
             st.metric(label="Value Loss", value=f"{episode_value_loss}")
@@ -168,9 +170,12 @@ def plot_pid(sim_results, env):
     t = sim_results[:, 0]
     u = sim_results[:, 1]
     y = sim_results[:, 2]
+    # e_t_integral = sim_results[:, 4]
+    # e_t = sim_results[:, 3]
+    y_ref = sim_results[:, 5]
     episode_result_dict = {
         "sim_time": t,
-        "reference_list": env.y_ref * np.ones_like(t),
+        "reference_list": y_ref,
         "output_list": y,
         "control_list": u,
     }

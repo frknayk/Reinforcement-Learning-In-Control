@@ -6,22 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium.spaces import Box
 
-ConfigSISO = {
-    # lower/upper limits
-    "action_space": List[float],
-    # lower/upper limits
-    "obs_space": List[float],
-    "num": List[int],
-    "den": List[int],
-    "x_0": List[float],
-    "dt": float,
-    "y_0": float,
-    "t_0": float,
-    "t_end": float,
-    "y_ref": float,
-    # How many seconds will be accepted as achieved ss
-    "steady_state_indicator": float,
-}
+from rlc.configs import env_config_default
 
 
 class LinearSISOEnv(gym.Env):
@@ -34,12 +19,15 @@ class LinearSISOEnv(gym.Env):
         self.action_space = Box(
             low=env_config["action_space"][0],
             high=env_config["action_space"][1],
+            shape=(1,),
             dtype=np.float32,
         )
         # observation space limits
+        # [e(t),integral(e(t))]
         self.observation_space = Box(
             low=env_config["obs_space"][0],
             high=env_config["obs_space"][1],
+            shape=(2, 1),
             dtype=np.float32,
         )
         sys_tf = ct.tf(env_config["num"], env_config["den"])
@@ -55,14 +43,21 @@ class LinearSISOEnv(gym.Env):
         self.x = np.zeros(self.sys.nstates)  # system state
         self.y = env_config["y_0"]
         self.y_ref = env_config["y_ref"]
+        self.error_t = 0
+        self.error_t_integral = 0
         self.sim_results = []
         self.counter_ss = 0
 
     def _get_obs(self):
-        return np.array([self.y], dtype=np.float32)
+        return np.array([self.error_t, self.error_t_integral], dtype=np.float32)
 
     def _get_info(self):
-        return {"reward_total": self.collected_reward, "states": self.x}
+        return {
+            "reward_total": self.collected_reward,
+            "states": self.x,
+            "output": self.y,
+            "reference": self.y_ref,
+        }
 
     def __check_steady_state(self):
         """If system response is achieved to steady-state or not"""
@@ -96,6 +91,8 @@ class LinearSISOEnv(gym.Env):
         self.y = self.env_config["y_0"]
         self.sim_results = []
         self.tick_sim = 0  # Simulation time index
+        self.error_t = 0
+        self.error_t_integral = 0
         observation = self._get_obs()
         info = self._get_info()
         return observation, info
@@ -132,15 +129,15 @@ class LinearSISOEnv(gym.Env):
         # Z^-1: unit-delay
         self.x = X_sim[:, 1]
         self.y = Y_sim[1]
+        self.error_t = self.y_ref - self.y
+        self.error_t_integral += self.error_t  # *self.env_config["dt"]
         done = self.__check_steady_state()
-        # if done:
-        #     yref = self.env_config["y_ref"]
-        #     # print(f"DONE TRIGGERED!: y_ref:{yref} - y:{self.y}")
         reward = self.__calculate_reward(self.env_config["y_ref"], self.y)
-        info = {"time_current": T_sim}
         obs = self._get_obs()
         info = self._get_info()
-        self.sim_results.append([T_sim[-1], action, Y_sim[-1]])
+        self.sim_results.append(
+            [T_sim[-1], action, self.y, self.error_t, self.error_t_integral, self.y_ref]
+        )
         return obs, reward, done, False, info
 
     def _saturate(self, action):
@@ -174,18 +171,24 @@ class LinearSISOEnv(gym.Env):
         t = sim_results[:, 0]
         u = sim_results[:, 1]
         y = sim_results[:, 2]
+        e_t_integral = sim_results[:, 4]
+        e_t = sim_results[:, 3]
+        y_ref = sim_results[:, 5]
         # Plot inputs and outputs
-        plt.title("System Response")
-        plt.subplot(2, 1, 1)
-        plt.plot(t, y, "o-")
-        plt.xlabel("t")
-        plt.ylabel("y(t)")
-        plt.grid()
-        plt.subplot(2, 1, 2)
-        plt.step(t, u, where="post")
-        plt.xlabel("t")
-        plt.ylabel("u(t)")
-        plt.grid()
+        f, (ax1, ax2, ax3, ax4) = plt.subplots(4, sharex=True, sharey=False)
+        (l1,) = ax1.plot(t, y, "*", label="y(t)")
+        (l1,) = ax1.plot(t, y_ref, label="ref(t)")
+        (l2,) = ax2.plot(t, u, "*", color="g", label="u(t)")
+        (l3,) = ax3.plot(t, e_t, "*", color="b", label="e(t)")
+        (l4,) = ax4.plot(t, e_t_integral, "*", color="b", label="e_integral(t)")
+        ax1.set_title("System Response(y(t) vs ref(t))")
+        ax1.legend(loc="upper right")
+        ax2.set_title("Control Signal: u(t)")
+        ax2.legend(loc="upper right")
+        ax3.set_title("Reference Tracking Error: e(t)")
+        ax3.legend(loc="upper right")
+        ax4.set_title("Integral of e(t)")
+        ax4.legend(loc="upper right")
         plt.show()
 
     @staticmethod
@@ -303,11 +306,11 @@ def example_pid_control_2(kp, ki, kd):
     env.render()
 
 
-def example_custom_signal():
+def example_minimal():
     # Masss-Spring-Damper system
-    config_siso = {
+    env_config = {
         "action_space": [-5, 5],
-        "obs_space": [-10, 10],
+        "obs_space": [0, 10],
         "num": [1],
         "den": [1, 10, 20],
         "x_0": [0],
@@ -316,18 +319,18 @@ def example_custom_signal():
         "t_0": 0,
         "t_end": 500,
         "y_ref": 1,
-        # number of ticks
         "steady_state_indicator": 10,
     }
-    env = LinearSISOEnv(config_siso)
+    env = LinearSISOEnv(env_config)
     obs, info = env.reset()
-    total_ticks = int(config_siso["t_end"] / config_siso["dt"])
+    total_ticks = int(env_config["t_end"] / env_config["dt"])
     for x in range(total_ticks):
-        # env.step(config_siso["action_space"][1])
-        env.step(25)
+        # action = env.action_space.sample()
+        action = 25
+        env.step(action)
     env.render()
 
 
 if __name__ == "__main__":
     # example_pid_control_2(300, 10, 5)
-    example_custom_signal()
+    example_minimal()

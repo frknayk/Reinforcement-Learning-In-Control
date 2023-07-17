@@ -104,11 +104,9 @@ class Trainer(object):
         # Reset environment to random observation
         observation, _ = self.env.reset()
         for step in range(self.config["max_step"]):
-            state_dict = {
-                "state": observation,
-                "state_ref": np.array(self.env.env_config["y_ref"]),
-            }
-            action = self.agent.apply(state_dict=state_dict, step=step)
+            self.normalize_observation(observation)
+            action = self.agent.apply(observation=observation, step=step)
+            self._check_policy_output(action)
             next_observation, reward, done, _, _ = self.env.step(action)
             self._check_output(action, observation, next_observation, done)
             observation = next_observation
@@ -119,10 +117,10 @@ class Trainer(object):
                 agent_loss_dict = self.agent.update_agent(step)
             episode_result_dict = self._update_iter_dict(
                 episode_result_dict,
-                next_observation,
+                self.env.y,
                 reward,
                 action,
-                self.env.env_config["y_ref"],
+                self.env.y_ref,
                 agent_loss_dict,
             )
             if done:
@@ -141,18 +139,15 @@ class Trainer(object):
         for eps in tqdm(range(self.config["max_episode"]), "Agent Learning Progress: "):
             episode_result_dict = self.train_one_episode()
             self.log_train_iter(episode_result_dict, eps)
-            if trainer_config["plot_library"] == "matplotlib":
-                plot_matplotlib(episode_result_dict, eps)
-            # if trainer_config["plot_library"] == 'streamlit':
-            #     plot_streamlit(episode_result_dict, eps)
 
     def log_train_iter(self, episode_result_dict, eps):
         # Print progress
         train_print_dict = {
             "eps": eps + 1,
-            "state_reference": self.env.env_config["y_ref"],
-            "state": self.env._get_obs()[0],
+            "state_reference": self.env.y_ref,
+            "state": episode_result_dict["output_list"][-1],
             "reward": episode_result_dict["episode_reward"],
+            "reward_mean": np.mean(episode_result_dict["reward_list"]),
             "step": episode_result_dict["step_total"],
         }
         self.logger.print_progress(
@@ -173,13 +168,29 @@ class Trainer(object):
                 self.agent.save(self.logger.log_weight_dir + "/agent_best.pth")
         if self.config["plotting"]["enable"]:
             if frequency_check(self.config["plotting"]["freq"], eps):
-                plot_matplotlib(episode_result_dict, eps)
+                # plot_matplotlib(episode_result_dict, eps)
+                self.env.render()
+
+    def normalize_observation(self, observation):
+        """Normalize states for better policy
+
+        1. Normalize Integral Error
+            Integral error can be high w.r.t error. Needs to be normalized
+            # Let's assume y=0 during all training then total error will be:
+            # e_int_max = y_ref*num_steps
+            # e_int = e_int/(e_int_max)
+        """
+        # Normalize integral error(t)
+        num_steps = self.env.t_all.shape[0] - 1
+        observation[1] = observation[1] / num_steps
+        # Normalize error(t) (NotImplementedError)
+        return observation
 
     def _check_output(self, action, observation, next_observation, done):
         if (
-            np.isnan(action)
-            or np.isnan(observation)
-            or np.isnan(next_observation)
+            np.isnan(action.all())
+            or np.isnan(observation.all())
+            or np.isnan(next_observation.all())
             or np.isnan(done)
         ):
             self.logger.logger_console.error(
@@ -187,6 +198,14 @@ class Trainer(object):
             )
             if self.config.get("enable_log_tensorboard") is True:
                 self.logger.close()
+            sys.exit()
+
+    def _check_policy_output(self, action):
+        if action is None:
+            self.logger.logger_console.error(
+                "Training is failed, \
+                try again with different parameters!(Nan encountered in policy)"
+            )
             sys.exit()
 
     def _update_iter_dict(
@@ -198,14 +217,14 @@ class Trainer(object):
         y_ref,
         agent_loss_dict,
     ):
-        episode_result_dict["output_list"].append(float(next_observation[0]))
+        episode_result_dict["output_list"].append(next_observation)
         episode_result_dict["reference_list"].append(y_ref)
         episode_result_dict["reward_list"].append(reward)
         episode_result_dict["control_sig_list"].append(action[0])
         episode_result_dict["step_total"] = episode_result_dict["step_total"] + 1
         episode_result_dict["total_output_signal"] = episode_result_dict[
             "total_output_signal"
-        ] + float(next_observation[0])
+        ] + float(next_observation)
         episode_result_dict["total_control_signal"] = episode_result_dict[
             "total_control_signal"
         ] + float(action[0])
@@ -254,7 +273,10 @@ if __name__ == "__main__":
     agent_config = agent_config_default.copy()
     agent_config["batch_size"] = 256
     agent_config["hidden_dim"] = 32
-    agent_config["algorithm_type"] = "DDPG"
+    agent_config["agent_params"] = DDPG.get_default_params()
+    agent_config["agent_params"]["replay_buffer_size"] = 5000
+    agent_config["agent_params"]["policy_lr"] = 1e-2
+    agent_config["agent_params"]["value_lr"] = 1e-2
 
     env_config = env_config_default.copy()
     env_config["action_space"] = [0, 50]
@@ -277,14 +299,14 @@ if __name__ == "__main__":
     )
 
     train_config = train_organizer.get_default_training_config()
-    train_config["enable_log_tensorboard"] = True
-    train_config["plot_library"] = "streamlit"  # or Matplotlib
+    train_config["plot_library"] = "matplotlib"  # or "streamlit"
     train_config["max_episode"] = 10
     train_config["algorithm_name"] = "DDPG"
     train_config["max_step"] = int(env_config["t_end"] / env_config["dt"])
     train_config["plotting"]["enable"] = True
     train_config["plotting"]["freq"] = 2
     train_config["freq_print_console"] = 1
-    train_config["checkpoints"]["enable"] = True
+    train_config["checkpoints"]["enable"] = False
+    train_config["enable_log_tensorboard"] = False
     train_config["checkpoints"]["freq"] = 1
     train_organizer.run(train_config)

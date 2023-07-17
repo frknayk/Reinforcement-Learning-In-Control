@@ -72,7 +72,7 @@ def create_tab_agent(tab_agent, agent_params):
     with tab_agent:
         agent_config = {}
         batch_size = st.number_input(
-            "Batch Size", value=128, min_value=0, max_value=2048
+            "Batch Size", value=256, min_value=0, max_value=2048
         )
         hidden_dim = st.number_input(
             "Hidden Layer Dimension", value=64, min_value=16, max_value=1024
@@ -107,7 +107,7 @@ def create_tab_env(tab_env, numerator, denum):
         with st.expander("Set Initial Conditions"):
             x_0 = st.number_input("x_0", step=1, value=0)
             y_0 = st.number_input("y_0", step=1, value=0)
-            dt = st.number_input("dt", step=0.1, value=0.01)
+            dt = st.number_input("dt", step=0.1, value=0.1)
             t_0 = st.number_input("t_0", step=1, value=0)
             t_end = st.number_input("t_end", step=10, value=15)
             y_ref = st.number_input("y_ref", value=1)
@@ -133,7 +133,7 @@ def create_tab_env(tab_env, numerator, denum):
 def create_tab_trainer(tab_training, env_config, algorithm_selected):
     train_config = None
     with tab_training:
-        max_episode = st.number_input("Max Episodes", step=100, value=10)
+        max_episode = st.number_input("Max Episodes", step=100, value=30)
         plotting_freq = st.number_input("Frequency of Plotting", value=1, step=1)
         printint_freq = st.number_input("Frequency of Console Logging", value=1, step=1)
         enable_log_tensorboard = st.checkbox("Save Tensorboard Runs", value=False)

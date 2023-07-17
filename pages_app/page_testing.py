@@ -8,7 +8,6 @@ import streamlit as st
 from tqdm import tqdm
 
 from gym_control.envs import LinearSISOEnv
-from pages_app.common import create_tab_agent, create_tab_env, create_tab_tf
 from pages_app.plot_functions import plot_test_results
 from rlc.agents.ddpg import DDPG
 from rlc.logger.logger import create_console_logger
@@ -56,16 +55,16 @@ def page_testing():
     env_config = dict(experiment_config["env_config"])
     trainer_config = dict(experiment_config["train_config"])
     agent_config = dict(experiment_config["agent_config"])
-    pprint.pprint(env_config)
-    pprint.pprint(trainer_config)
-    pprint.pprint(agent_config)
-
+    # pprint.pprint(env_config)
+    # pprint.pprint(trainer_config)
+    # pprint.pprint(agent_config)
     trainer = Trainer(
         env=LinearSISOEnv,
         agent_class=DDPG,
         agent_config=agent_config,
         env_config=env_config,
     )
+    trainer_config["checkpoints"]["enable"] = False
     trainer.set_trainer_config(trainer_config)
     trainer.load_checkpoint_binary(checkpoint)
     test_agent(trainer)

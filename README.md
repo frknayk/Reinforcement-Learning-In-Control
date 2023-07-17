@@ -22,13 +22,14 @@ streamlit run app.py
 <img width=640px height=480px src="images\result.png" alt="Project logo">
 
 ## TODO
-    - Integrate integral error to rlcontrol
+    - Fix seeds
     - Train environemnt with rllib
     - Add class diagram of project
     - Dockerize
     - Track experiments from db (postgresql)
 
 ## DONE
+    - Integrate integral error to rlcontrol
     - Add RL algorithm params to training page.
     - Add Training and Inference Pages. And Inference page must be able to load
     latest training's best agent in selected folder to test agent.

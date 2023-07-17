@@ -137,9 +137,9 @@ class DDPG(Agent):
     @staticmethod
     def get_default_params():
         params = {
-            "value_lr": 1e-1,
-            "policy_lr": 1e-1,
-            "replay_buffer_size": 1000,
+            "value_lr": 1e-2,
+            "policy_lr": 1e-2,
+            "replay_buffer_size": 5000,
             "gamma": 0.98,
             "soft_tau": 1e-2,
             "soft_update_frequency": 1,
@@ -157,21 +157,18 @@ class DDPG(Agent):
         ):
             target_param.data.copy_(param.data)
 
-    def apply(self, state_dict: dict, step: int):
-        # state = torch.FloatTensor(state).unsqueeze(0).to(device)
-        state_diff = state_dict["state_ref"] - state_dict["state"]
-        state_diff = torch.FloatTensor(state_diff).unsqueeze(0).to(device)
-        action = self.policy_net.forward(state_diff)
+    def apply(self, observation: np.ndarray, step: int):
+        input_policy = torch.FloatTensor(observation).unsqueeze(0).to(device)
+        action = self.policy_net.forward(input_policy)
         if torch.isnan(action):
             print("SOME SERIOUS PROBLEMS ENCOUNTERED IN action.cpu().data.numpy()")
             print("action : ", action)
-            print("STATE : ", state_diff)
+            print("STATE : ", input_policy)
             return None
         # convert torch to np
         action_np = action.cpu().data.numpy()
         action_reshaped = action_np.reshape(self.action_dim)
         action_noisy = self.ou_noise.get_action(action_reshaped, step)
-
         return action_noisy
 
     def update_agent(self, episode_number):
