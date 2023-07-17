@@ -42,21 +42,28 @@ def create_tab_tf(tab_tf):
     return numerator, denum
 
 
-# TODO: Make this flexible with different algorithms like PPO
-def create_tab_agent(tab_agent):
+def create_tab_agent(tab_agent, agent_params):
     agent_config = None
     with tab_agent:
         agent_config = {}
         batch_size = st.number_input(
-            "batch_size", value=128, min_value=0, max_value=2048
+            "Batch Size", value=128, min_value=0, max_value=2048
         )
         hidden_dim = st.number_input(
-            "hidden_dim", value=64, min_value=16, max_value=1024
+            "Hidden Layer Dimension", value=64, min_value=16, max_value=1024
         )
+        for key in agent_params:
+            agent_params[key] = st.number_input(
+                str(key), value=float(agent_params[key]), format="%f"
+            )
+        # those keys must be int
+        for key in agent_params:
+            if key == "batch_size" or key == "replay_buffer_size":
+                agent_params[key] = int(agent_params[key])
         agent_config = {
             "batch_size": batch_size,
             "hidden_dim": hidden_dim,
-            "algorithm_type": None,
+            "agent_params": agent_params,
         }
     return agent_config
 
@@ -75,9 +82,9 @@ def create_tab_env(tab_env, numerator, denum):
         with st.expander("Set Initial Conditions"):
             x_0 = st.number_input("x_0", step=1, value=0)
             y_0 = st.number_input("y_0", step=1, value=0)
-            dt = st.number_input("dt", step=0.1, value=0.1)
+            dt = st.number_input("dt", step=0.1, value=0.01)
             t_0 = st.number_input("t_0", step=1, value=0)
-            t_end = st.number_input("t_end", step=10, value=20)
+            t_end = st.number_input("t_end", step=10, value=15)
             y_ref = st.number_input("y_ref", value=1)
             steady_state_indicator = st.number_input(
                 "steady_state_counter", step=5, value=30

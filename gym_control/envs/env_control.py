@@ -124,6 +124,8 @@ class LinearSISOEnv(gym.Env):
         self.tick_sim += 1
         if type(action) == np.ndarray:
             action = action[0]
+        # If action exceeds limits, saturate it.
+        action = self._saturate(action)
         T_sim, Y_sim, X_sim = ct.input_output_response(
             self.sys, T_sim, U=action, X0=self.x, return_x=True
         )
@@ -140,6 +142,13 @@ class LinearSISOEnv(gym.Env):
         info = self._get_info()
         self.sim_results.append([T_sim[-1], action, Y_sim[-1]])
         return obs, reward, done, False, info
+
+    def _saturate(self, action):
+        if action < self.action_space.low[0]:
+            return float(self.action_space.low[0])
+        if action > self.action_space.high[0]:
+            return float(self.action_space.high[0])
+        return action
 
     def open_loop_step_response(self, action: float = 1.0):
         num_sim = int(

@@ -1,6 +1,7 @@
 import io
 import json
 import pickle
+import pprint
 from io import StringIO
 
 import streamlit as st
@@ -17,12 +18,13 @@ logger = create_console_logger("logger_training")
 import torch
 
 
-def test_agent():
+def test_agent(trainer):
     with st.spinner("Analyzing the best policy"):
         if st.button("Analyze and Test Best Policy", key="button_analyze"):
-            # episode_result_dict = trainer.test_agent()
-            pass
-        st.success("Test of best agent is completed!")
+            episode_result_dict = trainer.train_one_episode(test_mode=True)
+            placeholder = st.empty()
+            plot_test_results(episode_result_dict, placeholder, 10)
+            st.success("Test of best agent is completed!")
 
 
 def load_experiment_config():
@@ -34,9 +36,10 @@ def load_experiment_config():
 
 
 def load_agent_ckpt():
-    uploaded_file = None
     uploaded_file = st.file_uploader("Load Checkpoint")
-    return uploaded_file
+    if uploaded_file is not None:
+        buffer = io.BytesIO(uploaded_file.read())
+        return torch.load(buffer)
 
 
 def page_testing():
@@ -47,9 +50,16 @@ def page_testing():
     experiment_config = load_experiment_config()
     if experiment_config is None:
         return
+    checkpoint = load_agent_ckpt()
+    if checkpoint == "" or checkpoint is None:
+        return
     env_config = dict(experiment_config["env_config"])
     trainer_config = dict(experiment_config["train_config"])
     agent_config = dict(experiment_config["agent_config"])
+    pprint.pprint(env_config)
+    pprint.pprint(trainer_config)
+    pprint.pprint(agent_config)
+
     trainer = Trainer(
         env=LinearSISOEnv,
         agent_class=DDPG,
@@ -57,12 +67,5 @@ def page_testing():
         env_config=env_config,
     )
     trainer.set_trainer_config(trainer_config)
-    checkpoint = load_agent_ckpt()
-    if checkpoint == "":
-        return
-    buffer = io.BytesIO(checkpoint.read())
-    checkpoint = torch.load(buffer)
-    # print(checkpoint)
     trainer.load_checkpoint_binary(checkpoint)
-    # episode_result_dict = trainer.test_agent()
-    # plot_test_results(episode_result_dict,10)
+    test_agent(trainer)

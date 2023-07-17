@@ -40,7 +40,6 @@ def page_training():
     st.header("Configure Agent,System and Training Parameters")
     st.sidebar.markdown("# Training Page 🎈")
     st.sidebar.text("Configure environment,agent\n and training parameters.")
-
     tab_algorithm, tab_tf, tab_agent, tab_env, tab_training = st.tabs(
         ["Algorithm", "Transfer Function", "Agent", "Environment", "Training"]
     )
@@ -48,17 +47,17 @@ def page_training():
     numerator, denum = create_tab_tf(tab_tf)
     assert numerator is not None
     assert denum is not None
-    agent_config = create_tab_agent(tab_agent)
+    agent_config = create_tab_agent(tab_agent, DDPG.get_default_params())
     assert agent_config is not None
     env_config = create_tab_env(tab_env, numerator, denum)
     assert env_config is not None
-    trainer_config = create_tab_trainer(tab_training, env_config, algorithm_selected)
     trainer = Trainer(
         env=LinearSISOEnv,
         agent_class=DDPG,
         agent_config=agent_config,
         env_config=env_config,
     )
+    trainer_config = create_tab_trainer(tab_training, env_config, algorithm_selected)
     assert trainer_config is not None
     train_agent(trainer, trainer_config)
     agent_path = trainer.logger.log_weight_dir

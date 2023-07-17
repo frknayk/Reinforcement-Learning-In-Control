@@ -50,3 +50,6 @@ class Agent(object):
 
     def reset(self):
         pass
+
+    def get_default_params(self):
+        return {}

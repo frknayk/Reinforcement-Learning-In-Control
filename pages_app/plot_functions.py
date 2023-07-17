@@ -1,3 +1,4 @@
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
@@ -140,7 +141,7 @@ def plot_test_results(episode_result_dict, placeholder, eps):
             )
             st.write(fig)
         with empty_col:
-            st.markdown("============")
+            st.markdown("                           ")
         with fig_col2:
             st.markdown("### Metrics of the TEST ###")
             episode_reward = episode_result_dict["episode_reward"]
@@ -161,3 +162,68 @@ def plot_test_results(episode_result_dict, placeholder, eps):
                 label="Integral of Output Signal",
                 value=f"{total_output_signal}",
             )
+
+
+def plot_pid(sim_results, env):
+    t = sim_results[:, 0]
+    u = sim_results[:, 1]
+    y = sim_results[:, 2]
+    episode_result_dict = {
+        "sim_time": t,
+        "reference_list": env.y_ref * np.ones_like(t),
+        "output_list": y,
+        "control_list": u,
+    }
+    st.markdown("PID Control Result")
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        x_title="time[s]",
+        subplot_titles=(
+            "Reference vs Output",
+            "Control Signal with Upper/Lower Bounds",
+        ),
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=episode_result_dict["sim_time"],
+            y=episode_result_dict["reference_list"],
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=episode_result_dict["sim_time"],
+            y=episode_result_dict["output_list"],
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=episode_result_dict["sim_time"],
+            y=episode_result_dict["control_list"],
+        ),
+        row=2,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=episode_result_dict["sim_time"],
+            y=np.ones_like(t) * env.action_space.low[0],
+        ),
+        row=2,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=episode_result_dict["sim_time"],
+            y=np.ones_like(t) * env.action_space.high[0],
+        ),
+        row=2,
+        col=1,
+    )
+    fig.update_layout(showlegend=False, height=600, width=800)
+    st.write(fig)

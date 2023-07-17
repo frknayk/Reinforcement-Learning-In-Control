@@ -13,7 +13,6 @@ def create_log_directories(algo_name: str):
     create_dir(
         str(pathlib.Path(project_abs_path, "Runs", experiment_name, "checkpoints"))
     )
-    create_dir(str(pathlib.Path(project_abs_path, "Runs", experiment_name, "runs")))
 
 
 def create_tensorboard_log_dir(algo_name: str):

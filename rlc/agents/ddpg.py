@@ -116,7 +116,7 @@ class DDPG(Agent):
         # Ornstein-Uhlenbeck Noise
         self.ou_noise = OUNoise(action_space)
         if not params:
-            self.params = self.get_default_params()
+            self.params = agent_config["agent_params"]  # self.get_default_params()
         self.value_optimizer = optim.Adam(
             self.value_net.parameters(), lr=self.params["value_lr"]
         )
@@ -137,12 +137,10 @@ class DDPG(Agent):
     @staticmethod
     def get_default_params():
         params = {
-            "value_lr": 1e-2,
-            "policy_lr": 1e-3,
-            "replay_buffer_size": 5000,
-            "gamma": 0.99,
-            "min_value": -np.inf,
-            "max_value": np.inf,
+            "value_lr": 1e-1,
+            "policy_lr": 1e-1,
+            "replay_buffer_size": 1000,
+            "gamma": 0.98,
             "soft_tau": 1e-2,
             "soft_update_frequency": 1,
         }
@@ -202,10 +200,7 @@ class DDPG(Agent):
         next_action = self.target_policy_net(next_state)
         target_value = self.target_value_net(next_state, next_action.detach())
         expected_value = reward + (1.0 - done) * self.params["gamma"] * target_value
-        expected_value = torch.clamp(
-            expected_value, self.params["min_value"], self.params["max_value"]
-        )
-
+        expected_value = torch.clamp(expected_value, -np.inf, np.inf)
         value = self.value_net(state, action)
         value_loss = self.value_criterion(value, expected_value.detach())
 
