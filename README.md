@@ -7,7 +7,6 @@ Apply state-of-the-art RL algorithms to control linear/nonlinear dynamical syste
 
 ## Installing
 <!-- Create conda environment -->
-<!-- conda env export > environment.yml --no-builds -->
 'conda env create --name rlcontrol --file=environment.yml'
 
 Install gym_control environment: `pip install -e .`
@@ -18,8 +17,11 @@ Install gym_control environment: `pip install -e .`
 ## Run App
 streamlit run app.py
 
-
-<img width=640px height=480px src="images\result.png" alt="Project logo">
+## Create Requirements.txt file for Docker
+- `conda env export > environment.yml --no-builds`
+- `conda list -e > requirements_orig.txt`
+- `python clean_req.py` to get requirements.txt
+- docker build -t streamlit .
 
 ## TODO
     - Fix seeds
