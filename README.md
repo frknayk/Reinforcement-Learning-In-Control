@@ -82,11 +82,11 @@ The following open source packages are used in this project:
 * pandas
 * pickle5
 * zipfile36
+* 
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
 
-<h2 id="future"> Future Work and TODOs</h2>
+<h2 id="future"> Future Work </h2>
 
-<p align="justify"> 
   - Add class diagram of project,   
   - Train environemnt with rllib
   - Track experiments from db (postgresql)
