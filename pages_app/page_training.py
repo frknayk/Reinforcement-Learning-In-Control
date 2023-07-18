@@ -1,3 +1,6 @@
+from os.path import basename
+from zipfile import ZipFile
+
 import streamlit as st
 from tqdm import tqdm
 
@@ -33,6 +36,25 @@ def train_agent(trainer: Trainer, trainer_config):
                 trainer.log_train_iter(episode_result_dict, eps)
                 plot_training_episode(episode_result_dict, placeholder, eps)
             st.success("Training is completed!")
+            return True
+    return False
+
+
+def download_experiment(_trainer, is_train_completed):
+    if not is_train_completed:
+        return
+    ckpt_best_dir = _trainer.logger.log_weight_dir + "/agent_best.pth"
+    experiment_config_dir = _trainer.logger.get_experiment_pickle_dir()
+    zip_path = _trainer.logger.get_logger_relative_path("rlcontrol_result.zip")
+    with st.spinner("Results are zipping..."):
+        with ZipFile(zip_path, "w") as zip:
+            zip.write(ckpt_best_dir, basename(ckpt_best_dir))
+            zip.write(experiment_config_dir, basename(experiment_config_dir))
+        st.success("Training files zipped succesfully 🔥")
+        with open(zip_path, "rb") as f:
+            st.download_button(
+                "Download Result as Zip", f, file_name="rlcontrol_result.zip"
+            )
 
 
 def page_training():
@@ -59,12 +81,14 @@ def page_training():
     )
     trainer_config = create_tab_trainer(tab_training, env_config, algorithm_selected)
     assert trainer_config is not None
+    is_train_completed = False
     try:
-        train_agent(trainer, trainer_config)
+        is_train_completed = train_agent(trainer, trainer_config)
     except Exception as e:
         print(e)
     agent_path = trainer.logger.log_weight_dir
     st.info(
         f"Trained agent can be found at path \
-        (if save_checkpoints is checked) : {agent_path}"
+        (use it when inference) : {agent_path}"
     )
+    download_experiment(trainer, is_train_completed)

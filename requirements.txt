@@ -11,3 +11,4 @@ matplotlib
 plotly
 pandas
 pickle5
+zipfile36

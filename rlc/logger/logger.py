@@ -104,6 +104,15 @@ class Logger(object):
             comment="-" + self.algorithm_name, log_dir=self.log_tensorboard_dir
         )
 
+    def get_experiment_pickle_dir(self):
+        experiment_config_dir = self.get_logger_relative_path(
+            "experiment_config.pickle"
+        )
+        return experiment_config_dir
+
+    def get_logger_relative_path(self, path: str):
+        return str(pathlib.Path(self.experiment_dir, path))
+
     def save_experiment_config(self, env_config, agent_config, train_config):
         experiment_config = {
             "env_config": env_config,
@@ -113,9 +122,7 @@ class Logger(object):
                 pathlib.Path(self.experiment_dir, "checkpoints", "agent_best.pth")
             ),
         }
-        experiment_config_dir = str(
-            pathlib.Path(self.experiment_dir, "experiment_config.pickle")
-        )
+        experiment_config_dir = self.get_experiment_pickle_dir()
         with open(experiment_config_dir, "wb") as handle:
             pickle.dump(experiment_config, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
