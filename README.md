@@ -81,7 +81,7 @@ The following open source packages are used in this project:
 * plotly
 * pandas
 * pickle5
-* 
+* zipfile36
 ![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)
 
 <h2 id="future"> Future Work and TODOs</h2>
