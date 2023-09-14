@@ -10,7 +10,6 @@ repos:
     hooks:
       - id: flake8
         args: [--max-line-length=88]
-        exclude: "^DeepFA/Classification/relimetrics/ || ^DeepFA/Classification/furkan/archive/"
   - repo: https://github.com/pycqa/isort
     rev: 5.10.1
     hooks:
